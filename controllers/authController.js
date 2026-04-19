@@ -1,7 +1,23 @@
-const { query } = require("../config/db");
+﻿const { query } = require("../config/db");
 const { logAudit } = require("../utils/audit");
 
 const FIXED_COMPANY_ID = 1;
+const LAST_LOGIN_EMAIL_COOKIE = "rc2_last_login_email";
+
+function getCookieValue(req, cookieName) {
+  const cookieHeader = req.headers.cookie || "";
+  const cookieParts = cookieHeader.split(";");
+  const target = `${cookieName}=`;
+
+  for (const part of cookieParts) {
+    const cookie = part.trim();
+    if (cookie.startsWith(target)) {
+      return decodeURIComponent(cookie.substring(target.length));
+    }
+  }
+
+  return "";
+}
 
 exports.loginForm = (req, res) => {
   if (req.session && req.session.user_id) {
@@ -13,10 +29,13 @@ exports.loginForm = (req, res) => {
     }
   }
 
+  const lastEmail = (req.query.email || getCookieValue(req, LAST_LOGIN_EMAIL_COOKIE) || "").trim();
+
   res.render("auth/login", {
     pageTitle: "Login",
+    lastEmail,
     error: req.query.inactive
-      ? "Usuário inativo. Procure o administrador."
+      ? "Usuario inativo. Procure o administrador."
       : req.query.error
       ? "Usuario ou senha invalidos"
       : "",
@@ -41,11 +60,11 @@ exports.login = async (req, res) => {
     const user = rows[0];
 
     if (!user) {
-      return res.redirect("/login?error=1");
+      return res.redirect(`/login?error=1&email=${encodeURIComponent(email)}`);
     }
 
     if (user.status !== "ativo") {
-      return res.redirect("/login?inactive=1");
+      return res.redirect(`/login?inactive=1&email=${encodeURIComponent(email)}`);
     }
 
     req.session.user_id = user.id;
@@ -54,6 +73,12 @@ exports.login = async (req, res) => {
     req.session.user_email = user.email;
     req.session.user_name = user.name;
     req.session.last_login_at = new Date().toISOString();
+
+    res.cookie(LAST_LOGIN_EMAIL_COOKIE, user.email, {
+      maxAge: 1000 * 60 * 60 * 24 * 180,
+      httpOnly: false,
+      sameSite: "lax",
+    });
 
     await logAudit(req, "login", "Usuario realizou login no sistema.");
 
