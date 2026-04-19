@@ -21,7 +21,7 @@
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Plano</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Mensalidade</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Ações</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100 bg-white">
@@ -33,14 +33,25 @@
 
         <% clients.forEach((client) => { %>
           <tr>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= client.name %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= client.company_name || "-" %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= client.phone || "-" %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= client.email || "-" %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= client.plan || "-" %></td>
-            <td class="px-4 py-4 text-sm text-gray-700">R$ <%= Number(client.monthly_value || 0).toFixed(2) %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= client.status %></td>
-            <td class="px-4 py-4 text-sm"><a class="text-blue-700 hover:underline" href="/clients/<%= client.id %>/edit">Editar</a></td>
+            <td class="px-4 py-4">
+              <p class="text-sm font-medium text-gray-900"><%= client.name %></p>
+              <p class="mt-0.5 text-sm text-gray-500"><%= client.company_name || "-" %></p>
+            </td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= client.company_name || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= client.phone || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= client.email || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= client.plan || "-" %></td>
+            <td class="px-4 py-4 text-base font-semibold text-gray-900">R$ <%= Number(client.monthly_value || 0).toFixed(2) %></td>
+            <td class="px-4 py-4 text-sm">
+              <% if (["inactive", "inativo"].includes(String(client.status || "").toLowerCase())) { %>
+                <span class="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium tracking-wide text-gray-600">Inativo</span>
+              <% } else { %>
+                <span class="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-medium tracking-wide text-green-700">Ativo</span>
+              <% } %>
+            </td>
+            <td class="px-4 py-4 text-sm">
+              <a class="inline-flex rounded-lg px-2.5 py-1.5 text-sm font-medium text-indigo-600 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-700" href="/clients/<%= client.id %>/edit">Editar</a>
+            </td>
           </tr>
         <% }) %>
       </tbody>

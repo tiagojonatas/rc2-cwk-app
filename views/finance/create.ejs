@@ -20,6 +20,15 @@
         </select>
       </label>
 
+      <label class="text-sm text-gray-600 md:col-span-2">
+        Tipo de servico
+        <select class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" name="service_type" required>
+          <% (serviceTypes || []).forEach((item) => { %>
+            <option value="<%= item.value %>"><%= item.label %></option>
+          <% }) %>
+        </select>
+      </label>
+
       <label class="text-sm text-gray-600">
         Valor
         <input class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" type="number" name="amount" min="0" step="0.01" required />

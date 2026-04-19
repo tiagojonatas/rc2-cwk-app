@@ -1,0 +1,90 @@
+:root {
+  --font-sans: "Inter", "Segoe UI", sans-serif;
+  --font-display: "Poppins", "Inter", "Segoe UI", sans-serif;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+}
+
+html,
+body {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Page title: 28/32, semibold, tight tracking */
+.app-page-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+/* Section title: 18/24, medium */
+.app-section-title {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Descriptive text: 14/22 */
+.app-description {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* Label: 12/16, uppercase, wide tracking */
+.app-label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* Main body text */
+.app-body {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+.app-meta {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.app-table-name {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.app-table-email {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.app-table-cell {
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: #334155;
+}

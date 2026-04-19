@@ -1,4 +1,4 @@
-<%
+﻿<%
   const pageTitle = "Auditoria";
   const activeMenu = "audit";
 %>
@@ -7,8 +7,8 @@
 
 <section class="mb-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
   <form method="GET" action="/audit" class="grid gap-3 md:grid-cols-3">
-    <label class="text-sm text-gray-600">
-      Usuario
+    <label class="app-label normal-case text-gray-500">
+      Usu&aacute;rio
       <select name="user_id" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
         <option value="">Todos</option>
         <% users.forEach((user) => { %>
@@ -16,8 +16,8 @@
         <% }) %>
       </select>
     </label>
-    <label class="text-sm text-gray-600">
-      Acao
+    <label class="app-label normal-case text-gray-500">
+      A&ccedil;&atilde;o
       <select name="action" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
         <option value="">Todas</option>
         <% actions.forEach((item) => { %>
@@ -26,7 +26,7 @@
       </select>
     </label>
     <div class="flex items-end">
-      <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Filtrar</button>
+      <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-indigo-700 hover:shadow-md">Filtrar</button>
     </div>
   </form>
 </section>
@@ -36,10 +36,10 @@
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Usuario</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acao</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Descricao</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Data/Hora</th>
+          <th class="app-label px-4 py-3 text-left">Usu&aacute;rio</th>
+          <th class="app-label px-4 py-3 text-left">A&ccedil;&atilde;o</th>
+          <th class="app-label px-4 py-3 text-left">Descri&ccedil;&atilde;o</th>
+          <th class="app-label px-4 py-3 text-left">Data/Hora</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100 bg-white">
@@ -50,10 +50,13 @@
         <% } %>
         <% logs.forEach((log) => { %>
           <tr>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= log.user_name || "Sistema" %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= log.action %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= log.description || "-" %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= new Date(log.created_at).toLocaleString("pt-BR") %></td>
+            <td class="px-4 py-4">
+              <p class="text-sm font-medium text-gray-900"><%= log.user_name || "Sistema" %></p>
+              <p class="mt-0.5 text-xs text-gray-500">ID #<%= log.id %></p>
+            </td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= log.action %></td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= log.description || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= new Date(log.created_at).toLocaleString("pt-BR") %></td>
           </tr>
         <% }) %>
       </tbody>
@@ -62,3 +65,4 @@
 </section>
 
 <%- include("../partials/footer") %>
+

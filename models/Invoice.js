@@ -3,6 +3,20 @@ const { query } = require("../config/db");
 const FIXED_COMPANY_ID = 1;
 
 class Invoice {
+  static async getServiceTypeColumn() {
+    const rows = await query(
+      `SELECT COLUMN_NAME
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'invoices'
+         AND COLUMN_NAME IN ('service_type', 'tipo_servico')
+       ORDER BY FIELD(COLUMN_NAME, 'service_type', 'tipo_servico')
+       LIMIT 1`
+    );
+
+    return rows[0] ? rows[0].COLUMN_NAME : null;
+  }
+
   static async ensureDefaultCompany() {
     await query(
       "INSERT INTO companies (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = name",
@@ -12,9 +26,14 @@ class Invoice {
 
   static async getAll() {
     await this.ensureDefaultCompany();
+    const serviceTypeColumn = await this.getServiceTypeColumn();
+    const serviceTypeSelect = serviceTypeColumn
+      ? `invoices.${serviceTypeColumn} AS service_type,`
+      : `NULL AS service_type,`;
 
     const rows = await query(
-      `SELECT invoices.id, invoices.client_id, clients.name AS client_name, invoices.amount, invoices.due_date, invoices.status, invoices.created_at
+      `SELECT invoices.id, invoices.client_id, clients.name AS client_name, ${serviceTypeSelect}
+              invoices.amount, invoices.due_date, invoices.status, invoices.created_at
        FROM invoices
        INNER JOIN clients ON clients.id = invoices.client_id
        WHERE invoices.company_id = ?
@@ -48,6 +67,15 @@ class Invoice {
 
   static async create(data) {
     await this.ensureDefaultCompany();
+    const serviceTypeColumn = await this.getServiceTypeColumn();
+
+    if (serviceTypeColumn) {
+      return query(
+        `INSERT INTO invoices (company_id, client_id, ${serviceTypeColumn}, amount, due_date, status)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [FIXED_COMPANY_ID, data.client_id, data.service_type || "other", data.amount, data.due_date, "pending"]
+      );
+    }
 
     return query(
       `INSERT INTO invoices (company_id, client_id, amount, due_date, status)

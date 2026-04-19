@@ -1,6 +1,7 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  line-height: 1.6;
   background: #f5f7fa;
   color: #1f2937;
 }

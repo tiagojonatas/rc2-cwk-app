@@ -6,6 +6,18 @@
 <%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
 
 <% const canManageFinance = currentUser && (currentUser.role === "admin" || currentUser.role === "manager"); %>
+<%
+  function serviceTypeLabel(value) {
+    const labels = {
+      monthly_fee: "Mensalidade",
+      room_booking: "Reserva de sala",
+      coworking_day: "Coworking diario",
+      penalty_interest: "Multa/Juros",
+      other: "Servico avulso",
+    };
+    return labels[value] || "-";
+  }
+%>
 
 <% if (canManageFinance) { %>
   <div class="mb-4 flex justify-end">
@@ -19,6 +31,7 @@
       <thead class="bg-gray-50">
         <tr>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Servico</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Valor</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Vencimento</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
@@ -28,22 +41,26 @@
       <tbody class="divide-y divide-gray-100 bg-white">
         <% if (invoices.length === 0) { %>
           <tr>
-            <td class="px-4 py-4 text-sm text-gray-500" colspan="5">Nenhuma cobranca cadastrada.</td>
+            <td class="px-4 py-4 text-sm text-gray-500" colspan="6">Nenhuma cobranca cadastrada.</td>
           </tr>
         <% } %>
 
         <% invoices.forEach((invoice) => { %>
           <tr>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= invoice.client_name %></td>
-            <td class="px-4 py-4 text-sm text-gray-700">R$ <%= Number(invoice.amount || 0).toFixed(2) %></td>
-            <td class="px-4 py-4 text-sm text-gray-700"><%= new Date(invoice.due_date).toLocaleDateString("pt-BR") %></td>
             <td class="px-4 py-4">
-              <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold <%= invoice.statusClass === 'status-paid' ? 'bg-green-100 text-green-700' : invoice.statusClass === 'status-overdue' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700' %>"><%= invoice.displayStatus %></span>
+              <p class="text-sm font-medium text-gray-900"><%= invoice.client_name %></p>
+              <p class="mt-0.5 text-xs text-gray-500">Cobrança #<%= invoice.id %></p>
+            </td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= serviceTypeLabel(invoice.service_type) %></td>
+            <td class="px-4 py-4 text-base font-semibold text-gray-900">R$ <%= Number(invoice.amount || 0).toFixed(2) %></td>
+            <td class="px-4 py-4 text-sm text-gray-500"><%= new Date(invoice.due_date).toLocaleDateString("pt-BR") %></td>
+            <td class="px-4 py-4">
+              <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium tracking-wide <%= invoice.statusClass === 'status-paid' ? 'bg-green-100 text-green-700' : invoice.statusClass === 'status-overdue' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700' %>"><%= invoice.displayStatus %></span>
             </td>
             <td class="px-4 py-4">
               <% if (invoice.status !== "paid" && canManageFinance) { %>
                 <form method="POST" action="/finance/<%= invoice.id %>/pay">
-                  <button class="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" type="submit">Marcar como pago</button>
+                  <button class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-gray-400 hover:bg-gray-50" type="submit">Marcar como pago</button>
                 </form>
               <% } else { %>
                 <span class="text-sm text-gray-400">-</span>

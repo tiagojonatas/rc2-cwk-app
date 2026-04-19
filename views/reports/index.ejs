@@ -1,10 +1,10 @@
-<%- include("../partials/header", { pageTitle }) %>
+﻿<%- include("../partials/header", { pageTitle }) %>
 <%- include("../partials/sidebar", { pageTitle, activeMenu, topbarDate }) %>
 
 <section class="mb-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
   <form method="GET" action="/reports" class="flex flex-col gap-3 sm:flex-row sm:items-end">
-    <label class="text-sm text-gray-600">
-      Mes de referencia
+    <label class="app-label normal-case text-gray-500">
+      M&ecirc;s de refer&ecirc;ncia
       <select name="month" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 sm:w-64">
         <% monthOptions.forEach((item) => { %>
           <option value="<%= item.value %>" <%= item.value === selectedMonth ? "selected" : "" %>><%= item.label %></option>
@@ -19,41 +19,41 @@
 
 <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
   <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Receita do mes</p>
+    <p class="app-label">Receita do m&ecirc;s</p>
     <h3 class="mt-2 text-3xl font-semibold text-emerald-600"><%= revenue.paidMonth %></h3>
   </article>
   <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Pendente total</p>
+    <p class="app-label">Pendente total</p>
     <h3 class="mt-2 text-3xl font-semibold text-red-600"><%= revenue.pendingTotal %></h3>
   </article>
   <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Clientes ativos</p>
+    <p class="app-label">Clientes ativos</p>
     <h3 class="mt-2 text-3xl font-semibold text-slate-900"><%= clients.active %></h3>
   </article>
   <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
-    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Clientes em atraso</p>
+    <p class="app-label">Clientes em atraso</p>
     <h3 class="mt-2 text-3xl font-semibold text-red-600"><%= delinquency.overdueClients %></h3>
   </article>
 </section>
 
 <section class="mt-8 grid gap-6 xl:grid-cols-2">
   <article class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-    <h3 class="text-lg font-semibold text-slate-900">Receita</h3>
-    <p class="mt-1 text-sm text-gray-500">Resumo simples de faturamento</p>
+    <h3 class="app-section-title">Receita</h3>
+    <p class="app-description mt-1">Resumo simples de faturamento</p>
 
     <div class="mt-4 space-y-2 text-sm">
-      <p class="text-gray-700">Receita total do mes: <span class="font-semibold text-emerald-600"><%= revenue.paidMonth %></span></p>
-      <p class="text-gray-700">Total pendente: <span class="font-semibold text-red-600"><%= revenue.pendingTotal %></span></p>
+      <p class="text-gray-500">Receita total do m&ecirc;s: <span class="text-base font-semibold text-emerald-600"><%= revenue.paidMonth %></span></p>
+      <p class="text-gray-500">Total pendente: <span class="text-base font-semibold text-red-600"><%= revenue.pendingTotal %></span></p>
     </div>
 
-    <h4 class="mt-5 text-sm font-semibold uppercase tracking-wide text-gray-500">Ultimos 3 meses</h4>
+    <h4 class="app-label mt-5">&Uacute;ltimos 3 meses</h4>
     <ul class="mt-2 space-y-2">
       <% if (revenue.last3Months.length === 0) { %>
         <li class="text-sm text-gray-500">Sem registros de receita.</li>
       <% } %>
       <% revenue.last3Months.forEach((item) => { %>
         <li class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm">
-          <span class="text-gray-600"><%= item.refMonth %></span>
+          <span class="text-sm text-gray-500"><%= item.refMonth %></span>
           <span class="font-semibold text-slate-800"><%= item.total %></span>
         </li>
       <% }) %>
@@ -61,20 +61,20 @@
   </article>
 
   <article class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-    <h3 class="text-lg font-semibold text-slate-900">Clientes</h3>
-    <p class="mt-1 text-sm text-gray-500">Base de clientes no periodo atual</p>
+    <h3 class="app-section-title">Clientes</h3>
+    <p class="app-description mt-1">Base de clientes no per&iacute;odo atual</p>
 
     <ul class="mt-4 space-y-3 text-sm">
       <li class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-        <span class="text-gray-600">Total de clientes ativos</span>
+        <span class="text-sm text-gray-500">Total de clientes ativos</span>
         <span class="font-semibold text-emerald-600"><%= clients.active %></span>
       </li>
       <li class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-        <span class="text-gray-600">Clientes novos no mes</span>
+        <span class="text-sm text-gray-500">Clientes novos no m&ecirc;s</span>
         <span class="font-semibold text-indigo-600"><%= clients.newInMonth %></span>
       </li>
       <li class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
-        <span class="text-gray-600">Clientes inativos</span>
+        <span class="text-sm text-gray-500">Clientes inativos</span>
         <span class="font-semibold text-red-600"><%= clients.inactive %></span>
       </li>
     </ul>
@@ -83,8 +83,8 @@
 
 <section class="mt-8 grid gap-6 xl:grid-cols-2">
   <article class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-    <h3 class="text-lg font-semibold text-slate-900">Salas</h3>
-    <p class="mt-1 text-sm text-gray-500">Total de reservas no mes por sala</p>
+    <h3 class="app-section-title">Salas</h3>
+    <p class="app-description mt-1">Total de reservas no m&ecirc;s por sala</p>
 
     <ul class="mt-4 space-y-3">
       <% if (roomsMonthUsage.length === 0) { %>
@@ -94,9 +94,9 @@
         <li class="rounded-lg px-3 py-2 <%= room.isTopRoom ? 'border border-emerald-200 bg-emerald-50' : 'bg-gray-50' %>">
           <div class="flex items-center justify-between text-sm">
             <div class="flex items-center gap-2">
-              <span class="font-medium text-slate-700"><%= room.name %></span>
+              <span class="text-sm font-medium text-gray-900"><%= room.name %></span>
               <% if (room.isTopRoom) { %>
-                <span class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Mais utilizada</span>
+                <span class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-medium tracking-wide text-emerald-700">Mais utilizada</span>
               <% } %>
             </div>
             <span class="font-semibold text-slate-800"><%= room.bookings_count %> reservas</span>
@@ -107,13 +107,13 @@
   </article>
 
   <article class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-    <h3 class="text-lg font-semibold text-slate-900">Inadimplencia</h3>
-    <p class="mt-1 text-sm text-gray-500">Pendencias financeiras em aberto</p>
+    <h3 class="app-section-title">Inadimpl&ecirc;ncia</h3>
+    <p class="app-description mt-1">Pend&ecirc;ncias financeiras em aberto</p>
 
     <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
-      <p class="text-sm text-red-700">Total em atraso</p>
+      <p class="text-sm font-medium text-red-700">Total em atraso</p>
       <p class="text-2xl font-semibold text-red-700"><%= delinquency.totalOverdue %></p>
-      <p class="mt-1 text-xs text-red-600"><%= delinquency.overdueClients %> cliente(s) em atraso</p>
+      <p class="mt-1 text-xs font-medium tracking-wide text-red-600"><%= delinquency.overdueClients %> cliente(s) em atraso</p>
     </div>
 
     <ul class="mt-4 space-y-2">
@@ -122,7 +122,7 @@
       <% } %>
       <% delinquency.list.forEach((item) => { %>
         <li class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm">
-          <span class="text-gray-700"><%= item.client_name %></span>
+          <span class="text-sm font-medium text-gray-900"><%= item.client_name %></span>
           <span class="font-semibold text-red-600"><%= item.total_due %></span>
         </li>
       <% }) %>
@@ -131,3 +131,4 @@
 </section>
 
 <%- include("../partials/footer") %>
+
