@@ -1,0 +1,64 @@
+<%
+  const pageTitle = "Auditoria";
+  const activeMenu = "audit";
+%>
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
+
+<section class="mb-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+  <form method="GET" action="/audit" class="grid gap-3 md:grid-cols-3">
+    <label class="text-sm text-gray-600">
+      Usuario
+      <select name="user_id" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+        <option value="">Todos</option>
+        <% users.forEach((user) => { %>
+          <option value="<%= user.id %>" <%= Number(selectedUserId) === Number(user.id) ? "selected" : "" %>><%= user.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label class="text-sm text-gray-600">
+      Acao
+      <select name="action" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+        <option value="">Todas</option>
+        <% actions.forEach((item) => { %>
+          <option value="<%= item.action %>" <%= selectedAction === item.action ? "selected" : "" %>><%= item.action %></option>
+        <% }) %>
+      </select>
+    </label>
+    <div class="flex items-end">
+      <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Filtrar</button>
+    </div>
+  </form>
+</section>
+
+<section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Usuario</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acao</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Descricao</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Data/Hora</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <% if (logs.length === 0) { %>
+          <tr>
+            <td class="px-4 py-4 text-sm text-gray-500" colspan="4">Nenhum registro encontrado.</td>
+          </tr>
+        <% } %>
+        <% logs.forEach((log) => { %>
+          <tr>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= log.user_name || "Sistema" %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= log.action %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= log.description || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= new Date(log.created_at).toLocaleString("pt-BR") %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include("../partials/footer") %>

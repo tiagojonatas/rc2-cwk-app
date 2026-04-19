@@ -1,0 +1,59 @@
+<%
+  const pageTitle = "Financeiro";
+  const activeMenu = "finance";
+%>
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
+
+<% const canManageFinance = currentUser && (currentUser.role === "admin" || currentUser.role === "manager"); %>
+
+<% if (canManageFinance) { %>
+  <div class="mb-4 flex justify-end">
+    <a class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" href="/finance/create">Nova Cobranca</a>
+  </div>
+<% } %>
+
+<section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Valor</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Vencimento</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <% if (invoices.length === 0) { %>
+          <tr>
+            <td class="px-4 py-4 text-sm text-gray-500" colspan="5">Nenhuma cobranca cadastrada.</td>
+          </tr>
+        <% } %>
+
+        <% invoices.forEach((invoice) => { %>
+          <tr>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= invoice.client_name %></td>
+            <td class="px-4 py-4 text-sm text-gray-700">R$ <%= Number(invoice.amount || 0).toFixed(2) %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= new Date(invoice.due_date).toLocaleDateString("pt-BR") %></td>
+            <td class="px-4 py-4">
+              <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold <%= invoice.statusClass === 'status-paid' ? 'bg-green-100 text-green-700' : invoice.statusClass === 'status-overdue' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700' %>"><%= invoice.displayStatus %></span>
+            </td>
+            <td class="px-4 py-4">
+              <% if (invoice.status !== "paid" && canManageFinance) { %>
+                <form method="POST" action="/finance/<%= invoice.id %>/pay">
+                  <button class="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" type="submit">Marcar como pago</button>
+                </form>
+              <% } else { %>
+                <span class="text-sm text-gray-400">-</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include("../partials/footer") %>

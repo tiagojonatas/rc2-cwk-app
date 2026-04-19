@@ -1,0 +1,45 @@
+<%
+  const pageTitle = "Editar Usuario";
+  const activeMenu = "users";
+%>
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
+
+<section class="max-w-3xl rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+  <form method="POST" action="/users/<%= userData.id %>/edit" class="grid gap-4 md:grid-cols-2">
+    <label class="text-sm text-gray-600">
+      Nome
+      <input class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" type="text" name="name" value="<%= userData.name %>" required />
+    </label>
+    <label class="text-sm text-gray-600">
+      Email
+      <input class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" type="email" name="email" value="<%= userData.email %>" required />
+    </label>
+    <label class="text-sm text-gray-600 md:col-span-2">
+      Role
+      <select class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" name="role" required>
+        <% allowedRoles.forEach((role) => { %>
+          <option value="<%= role %>" <%= userData.role === role ? "selected" : "" %>><%= role %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <div class="mt-2 flex items-center gap-3 md:col-span-2">
+      <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">Atualizar</button>
+      <a class="text-sm text-gray-600 hover:underline" href="/users">Voltar</a>
+    </div>
+  </form>
+</section>
+
+<section class="mt-6 max-w-3xl rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+  <h3 class="text-lg font-semibold text-slate-900">Redefinir senha</h3>
+  <form method="POST" action="/users/<%= userData.id %>/reset-password" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+    <label class="w-full text-sm text-gray-600">
+      Nova senha
+      <input class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" type="text" name="password" required />
+    </label>
+    <button class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" type="submit">Redefinir</button>
+  </form>
+</section>
+
+<%- include("../partials/footer") %>

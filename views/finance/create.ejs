@@ -1,0 +1,41 @@
+<%
+  const pageTitle = "Nova Cobranca";
+  const activeMenu = "finance";
+%>
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
+
+<section class="max-w-3xl rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+  <% if (clients.length === 0) { %>
+    <p class="text-sm text-gray-600">Cadastre ao menos um cliente antes de criar uma cobranca.</p>
+    <p class="mt-2"><a class="text-sm text-blue-700 hover:underline" href="/clients">Ir para clientes</a></p>
+  <% } else { %>
+    <form method="POST" action="/finance/create" class="grid gap-4 md:grid-cols-2">
+      <label class="text-sm text-gray-600 md:col-span-2">
+        Cliente
+        <select class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" name="client_id" required>
+          <% clients.forEach((client) => { %>
+            <option value="<%= client.id %>"><%= client.name %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label class="text-sm text-gray-600">
+        Valor
+        <input class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" type="number" name="amount" min="0" step="0.01" required />
+      </label>
+
+      <label class="text-sm text-gray-600">
+        Data de vencimento
+        <input class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" type="date" name="due_date" required />
+      </label>
+
+      <div class="mt-2 flex items-center gap-3 md:col-span-2">
+        <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" type="submit">Salvar</button>
+        <a class="text-sm text-gray-600 hover:underline" href="/finance">Voltar</a>
+      </div>
+    </form>
+  <% } %>
+</section>
+
+<%- include("../partials/footer") %>

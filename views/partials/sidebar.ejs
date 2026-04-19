@@ -1,0 +1,85 @@
+<aside class="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-800 bg-slate-900 p-6 md:block">
+  <h1 class="text-xl font-bold text-white">RC2 Coworking</h1>
+  <nav class="mt-8 space-y-2">
+    <% if (currentUser && currentUser.role === "client") { %>
+      <a href="/client/dashboard" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= activeMenu === 'client_dashboard' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path d="M3 11a2 2 0 012-2h3v8H5a2 2 0 01-2-2v-4zM12 3h3a2 2 0 012 2v10a2 2 0 01-2 2h-3V3zM9 3h2v14H9V3z"></path>
+        </svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="/client/bookings" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= activeMenu === 'client_bookings' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M6 2a1 1 0 012 0v1h4V2a1 1 0 112 0v1h1a2 2 0 012 2v2H3V5a2 2 0 012-2h1V2zm12 7H2v6a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"></path>
+        </svg>
+        <span>Minha Agenda</span>
+      </a>
+    <% } else { %>
+      <a href="/dashboard" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= activeMenu === 'dashboard' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path d="M3 11a2 2 0 012-2h3v8H5a2 2 0 01-2-2v-4zM12 3h3a2 2 0 012 2v10a2 2 0 01-2 2h-3V3zM9 3h2v14H9V3z"></path>
+        </svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="/clients" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= activeMenu === 'clients' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path d="M13 7a3 3 0 11-6 0 3 3 0 016 0zM5 14a4 4 0 118 0v1H5v-1zM15.5 8.5a2 2 0 11-.001 4.001A2 2 0 0115.5 8.5zM15 14h3v1h-3v-1z"></path>
+        </svg>
+        <span>Clientes</span>
+      </a>
+      <a href="/finance" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= activeMenu === 'finance' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm.75 4.25a.75.75 0 00-1.5 0v.33A2.75 2.75 0 006.5 9.25c0 1.4 1.04 2.4 2.75 2.72v1.95a1.25 1.25 0 01-1-.95.75.75 0 10-1.46.33 2.75 2.75 0 002.46 2.14v.3a.75.75 0 001.5 0v-.32a2.75 2.75 0 00-1-5.32V8.17a1.25 1.25 0 011 .94.75.75 0 001.46-.33 2.75 2.75 0 00-2.46-2.14v-.39z" clip-rule="evenodd"></path>
+        </svg>
+        <span>Financeiro</span>
+      </a>
+      <a href="/agenda" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= ['bookings', 'agenda'].includes(activeMenu) ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M6 2a1 1 0 012 0v1h4V2a1 1 0 112 0v1h1a2 2 0 012 2v2H3V5a2 2 0 012-2h1V2zm12 7H2v6a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"></path>
+        </svg>
+        <span>Agenda</span>
+      </a>
+      <% if (currentUser && (currentUser.role === "admin" || currentUser.role === "manager")) { %>
+        <a href="/reports" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= activeMenu === 'reports' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" d="M4 3a2 2 0 012-2h5.586a2 2 0 011.414.586l2.414 2.414A2 2 0 0116 5.414V17a2 2 0 01-2 2H6a2 2 0 01-2-2V3zm3 6a1 1 0 000 2h6a1 1 0 100-2H7zm0 4a1 1 0 000 2h4a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+          </svg>
+          <span>Relatórios</span>
+        </a>
+        <a href="/audit" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= activeMenu === 'audit' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M4 3a1 1 0 011-1h9a1 1 0 011 1v14l-2-1-2 1-2-1-2 1-2-1-1 .5V3z"></path>
+          </svg>
+          <span>Auditoria</span>
+        </a>
+      <% } %>
+      <% if (currentUser && currentUser.role === "admin") { %>
+        <a href="/users" class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 <%= activeMenu === 'users' ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-indigo-400' %>">
+          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M10 2a4 4 0 014 4v1h1a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h1V6a4 4 0 014-4zm2 5V6a2 2 0 10-4 0v1h4z"></path>
+          </svg>
+          <span>Usuários</span>
+        </a>
+      <% } %>
+    <% } %>
+  </nav>
+
+  <form method="POST" action="/logout" class="mt-8">
+    <button type="submit" class="w-full cursor-pointer rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 transition-all duration-200 hover:bg-slate-800">
+      Sair
+    </button>
+  </form>
+</aside>
+
+<main class="p-6 md:ml-64 md:p-8">
+  <header class="mb-8 flex items-start justify-between gap-4">
+    <div>
+      <h2 class="text-3xl font-semibold text-gray-900"><%= pageTitle || "Dashboard" %></h2>
+      <p class="mt-1 text-sm text-gray-500 capitalize">
+        <%= typeof topbarDate !== "undefined" && topbarDate ? topbarDate : new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) %>
+      </p>
+    </div>
+    <% if (typeof topbarActionLink !== "undefined" && typeof topbarActionLabel !== "undefined") { %>
+      <a href="<%= topbarActionLink %>" class="cursor-pointer rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md"><%= topbarActionLabel %></a>
+    <% } %>
+  </header>

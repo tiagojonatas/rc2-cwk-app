@@ -1,0 +1,105 @@
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu, topbarDate }) %>
+
+<section class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+  <h3 class="text-lg font-semibold text-slate-900">Nova reserva</h3>
+
+  <% if (error) { %>
+    <p class="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"><%= error %></p>
+  <% } %>
+  <% if (success) { %>
+    <p class="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700"><%= success %></p>
+  <% } %>
+
+  <form method="GET" action="/client/bookings" class="mt-4 grid gap-4 md:grid-cols-3">
+    <label class="text-sm text-gray-600">
+      Sala
+      <select name="room_id" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+        <% rooms.forEach((room) => { %>
+          <option value="<%= room.id %>" <%= room.id === selectedRoomId ? "selected" : "" %>><%= room.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label class="text-sm text-gray-600">
+      Data
+      <input type="date" name="date" value="<%= selectedDate %>" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+    </label>
+    <div class="flex items-end">
+      <button type="submit" class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm">Ver disponibilidade</button>
+    </div>
+  </form>
+
+  <div class="mt-5">
+    <h4 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Horarios disponiveis</h4>
+    <div class="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <% availableSlots.forEach((slot) => { %>
+        <div class="rounded-lg border px-3 py-2 text-sm <%= slot.available ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700' %>">
+          <%= slot.start_time.slice(0,5) %> - <%= slot.end_time.slice(0,5) %>
+          <span class="block text-xs"><%= slot.available ? "Disponivel" : "Ocupado" %></span>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+
+  <form method="POST" action="/client/bookings" class="mt-6 grid gap-4 md:grid-cols-4">
+    <input type="hidden" name="room_id" value="<%= selectedRoomId %>" />
+    <input type="hidden" name="date" value="<%= selectedDate %>" />
+    <label class="text-sm text-gray-600">
+      Inicio
+      <input type="time" name="start_time" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+    </label>
+    <label class="text-sm text-gray-600">
+      Fim
+      <input type="time" name="end_time" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+    </label>
+    <div class="md:col-span-2 flex items-end">
+      <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-indigo-700">Agendar</button>
+    </div>
+  </form>
+</section>
+
+<section class="mt-8 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+  <h3 class="text-lg font-semibold text-slate-900">Minhas reservas</h3>
+  <% if (myBookings.length === 0) { %>
+    <p class="mt-3 text-sm text-gray-500">Nenhuma reserva futura.</p>
+  <% } else { %>
+    <ul class="mt-4 space-y-3">
+      <% myBookings.forEach((booking) => { %>
+        <li class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+          <div>
+            <p class="font-medium text-slate-800"><%= booking.room_name %></p>
+            <p class="text-sm text-gray-500"><%= new Date(booking.date).toLocaleDateString("pt-BR") %> - <%= String(booking.start_time).slice(0,5) %> - <%= String(booking.end_time).slice(0,5) %></p>
+            <%
+              let statusLabel = "Confirmada";
+              let statusClass = "bg-emerald-100 text-emerald-700";
+              if (booking.status === "cancelled_by_client") {
+                statusLabel = "Cancelada por voce";
+                statusClass = "bg-amber-100 text-amber-700";
+              } else if (booking.status === "cancelled_by_admin") {
+                statusLabel = "Cancelada pelo admin";
+                statusClass = "bg-red-100 text-red-700";
+              } else if (booking.status === "no_show") {
+                statusLabel = "Nao compareceu";
+                statusClass = "bg-slate-200 text-slate-700";
+              }
+            %>
+            <span class="mt-2 inline-flex rounded-full px-2 py-1 text-xs font-semibold <%= statusClass %>"><%= statusLabel %></span>
+            <% if (booking.cancel_reason) { %>
+              <p class="mt-1 text-xs text-gray-600">Motivo: <%= booking.cancel_reason %></p>
+            <% } %>
+          </div>
+          <% if (booking.status === "confirmed") { %>
+            <form method="POST" action="/client/bookings/<%= booking.id %>/cancel" class="w-52">
+              <input type="hidden" name="cancel_reason" value="Cancelado pelo cliente" />
+              <button type="submit" class="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-sm text-red-700 transition-all duration-200 hover:bg-red-100">Cancelar</button>
+            </form>
+          <% } else { %>
+            <span class="text-xs text-gray-400">Sem acao</span>
+          <% } %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<%- include("../partials/footer") %>

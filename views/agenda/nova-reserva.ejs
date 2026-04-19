@@ -1,0 +1,171 @@
+<%
+  const pageTitle = "Nova reserva";
+  const activeMenu = "agenda";
+%>
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
+
+<section class="max-w-4xl rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+  <h3 class="text-lg font-semibold text-slate-900">Nova reserva</h3>
+
+  <% if (error) { %>
+    <p class="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= error %></p>
+  <% } %>
+
+  <form method="POST" action="/agenda/nova" class="mt-5 grid gap-4 md:grid-cols-2">
+    <label class="text-sm text-gray-600">
+      Cliente
+      <select name="client_id" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+        <option value="">Selecione</option>
+        <% clients.forEach((client) => { %>
+          <option value="<%= client.id %>"><%= client.name %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label class="text-sm text-gray-600">
+      Sala
+      <select id="room_id" name="room_id" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
+        <option value="">Selecione</option>
+        <% rooms.forEach((room) => { %>
+          <option value="<%= room.id %>" data-price="<%= Number(room.price_per_hour || 0) %>"><%= room.name %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label class="text-sm text-gray-600">
+      Data
+      <input type="date" name="date" min="<%= todayDate %>" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+    </label>
+
+    <label class="text-sm text-gray-600">
+      Hora início
+      <input id="start_time" type="time" name="start_time" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+    </label>
+
+    <label class="text-sm text-gray-600">
+      Hora fim
+      <input id="end_time" type="time" name="end_time" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+    </label>
+
+    <div class="md:col-span-2">
+      <label class="text-sm text-gray-600">
+        Observações (opcional)
+        <textarea
+          name="observacoes"
+          rows="3"
+          placeholder="Ex.: cliente solicitou projetor e café."
+          class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+        ></textarea>
+      </label>
+    </div>
+
+    <div class="md:col-span-2">
+      <p class="text-sm text-gray-600">Status inicial</p>
+      <div class="mt-2 grid gap-2 sm:grid-cols-2">
+        <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-indigo-500 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
+          <input type="radio" name="status_inicial" value="confirmed" checked class="h-4 w-4 accent-indigo-600" />
+          <span>Confirmada</span>
+        </label>
+        <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700">
+          <input type="radio" name="status_inicial" value="pending" class="h-4 w-4 accent-indigo-600" />
+          <span>Pendente</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm md:col-span-2">
+      <p class="text-gray-600">
+        Duração:
+        <span id="durationText" class="font-semibold text-slate-800">0h</span>
+      </p>
+      <p class="mt-1 text-gray-600">
+        Valor:
+        <span id="valueText" class="font-semibold text-slate-800">R$ 0,00</span>
+      </p>
+      <p class="mt-1 text-xs text-gray-500">O valor é calculado automaticamente pela duração e preço da sala.</p>
+    </div>
+
+    <div class="mt-2 flex items-center gap-3 md:col-span-2">
+      <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-indigo-700">Salvar reserva</button>
+      <a href="/agenda" class="text-sm text-gray-600 hover:underline">Voltar</a>
+    </div>
+  </form>
+</section>
+
+<script>
+  (function () {
+    const roomSelect = document.getElementById("room_id");
+    const startInput = document.getElementById("start_time");
+    const endInput = document.getElementById("end_time");
+    const durationText = document.getElementById("durationText");
+    const valueText = document.getElementById("valueText");
+    const statusOptions = document.querySelectorAll('input[name="status_inicial"]');
+
+    function toMinutes(value) {
+      if (!value || value.indexOf(":") === -1) {
+        return NaN;
+      }
+      const parts = value.split(":");
+      const hours = Number(parts[0]);
+      const minutes = Number(parts[1]);
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+        return NaN;
+      }
+      return hours * 60 + minutes;
+    }
+
+    function formatCurrency(value) {
+      return Number(value || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+    }
+
+    function updateSummary() {
+      const startMinutes = toMinutes(startInput.value);
+      const endMinutes = toMinutes(endInput.value);
+      const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+      const hourlyPrice = Number((selectedOption && selectedOption.dataset.price) || 0);
+
+      if (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes) || endMinutes <= startMinutes) {
+        durationText.textContent = "0h";
+        valueText.textContent = formatCurrency(0);
+        return;
+      }
+
+      const totalMinutes = endMinutes - startMinutes;
+      const durationHours = totalMinutes / 60;
+      const value = durationHours * hourlyPrice;
+
+      durationText.textContent =
+        durationHours.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + "h";
+      valueText.textContent = formatCurrency(value);
+    }
+
+    function updateStatusHighlight() {
+      statusOptions.forEach((input) => {
+        const label = input.closest("label");
+        if (!label) {
+          return;
+        }
+        if (input.checked) {
+          label.className =
+            "flex cursor-pointer items-center gap-2 rounded-lg border border-indigo-500 bg-indigo-50 px-3 py-2 text-sm text-indigo-700";
+        } else {
+          label.className =
+            "flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700";
+        }
+      });
+    }
+
+    roomSelect.addEventListener("change", updateSummary);
+    startInput.addEventListener("change", updateSummary);
+    endInput.addEventListener("change", updateSummary);
+    statusOptions.forEach((input) => input.addEventListener("change", updateStatusHighlight));
+
+    updateStatusHighlight();
+  })();
+</script>
+
+<%- include("../partials/footer") %>

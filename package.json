@@ -1,0 +1,26 @@
+{
+    "name":  "rc2-coworking-app",
+    "version":  "1.0.0",
+    "description":  "Sistema web inicial com Node.js + Express + EJS",
+    "main":  "server.js",
+    "scripts":  {
+                    "dev":  "nodemon server.js",
+                    "start":  "node server.js",
+                    "setup:booking-status": "node scripts/setup-booking-status.js",
+                    "setup:access-control": "node scripts/setup-access-control.js"
+                },
+    "keywords":  [
+
+                 ],
+    "author":  "",
+    "license":  "ISC",
+    "dependencies":  {
+                         "ejs":  "^3.1.10",
+                         "express-session": "^1.18.1",
+                         "express":  "^4.21.2",
+                         "mysql2": "^3.14.1"
+                     },
+    "devDependencies":  {
+                            "nodemon":  "^3.1.10"
+                        }
+}

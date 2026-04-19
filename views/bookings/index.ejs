@@ -1,0 +1,174 @@
+<%
+  const pageTitle = "Agenda";
+  const activeMenu = "bookings";
+
+  function statusConfig(status) {
+    if (status === "cancelled_by_client") {
+      return { label: "Cancelada pelo cliente", badge: "bg-amber-100 text-amber-700" };
+    }
+    if (status === "cancelled_by_admin") {
+      return { label: "Cancelada pelo admin", badge: "bg-red-100 text-red-700" };
+    }
+    if (status === "no_show") {
+      return { label: "Nao compareceu", badge: "bg-slate-200 text-slate-700" };
+    }
+    return { label: "Confirmada", badge: "bg-emerald-100 text-emerald-700" };
+  }
+%>
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
+
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <form method="GET" action="/bookings" class="flex flex-col gap-2 sm:flex-row sm:items-end">
+    <label class="text-sm text-gray-600">
+      Data
+      <input type="date" name="date" value="<%= selectedDate %>" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 sm:w-auto" />
+    </label>
+    <button type="submit" class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Filtrar</button>
+  </form>
+
+  <a class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" href="/bookings/create">Nova Reserva</a>
+</div>
+
+<% if (error) { %>
+  <p class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= error %></p>
+<% } %>
+<% if (success) { %>
+  <p class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><%= success %></p>
+<% } %>
+
+<% const canAdminManageBookings = currentUser && currentUser.role === "admin"; %>
+
+<section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Sala</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Horario</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Rastreio</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <% if (bookings.length === 0) { %>
+          <tr>
+            <td class="px-4 py-4 text-sm text-gray-500" colspan="6">Nenhuma reserva para a data selecionada.</td>
+          </tr>
+        <% } %>
+
+        <% bookings.forEach((booking) => { const status = statusConfig(booking.status); %>
+          <tr>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= booking.client_name %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= booking.room_name %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= String(booking.start_time).slice(0, 5) %> - <%= String(booking.end_time).slice(0, 5) %></td>
+            <td class="px-4 py-4 text-sm">
+              <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold <%= status.badge %>"><%= status.label %></span>
+            </td>
+            <td class="px-4 py-4 text-xs text-gray-600">
+              <% if (booking.cancel_reason) { %>
+                <p><span class="font-semibold text-gray-700">Motivo:</span> <%= booking.cancel_reason %></p>
+              <% } else { %>
+                <p>-</p>
+              <% } %>
+              <% if (booking.cancelled_by_name) { %>
+                <p class="mt-1"><span class="font-semibold text-gray-700">Por:</span> <%= booking.cancelled_by_name %></p>
+              <% } %>
+            </td>
+            <td class="px-4 py-4 text-sm">
+              <% if (booking.status === "confirmed" && canAdminManageBookings) { %>
+                <div class="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    class="open-cancel-modal rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 transition-all duration-200 hover:bg-red-100"
+                    data-booking-id="<%= booking.id %>"
+                    data-booking-client="<%= booking.client_name %>"
+                    data-date="<%= selectedDate %>"
+                  >
+                    Cancelar
+                  </button>
+                  <% if (Number(booking.can_mark_no_show) === 1) { %>
+                    <form method="POST" action="/bookings/<%= booking.id %>/no-show">
+                      <input type="hidden" name="date" value="<%= selectedDate %>" />
+                      <button type="submit" class="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50">
+                        Marcar como nao compareceu
+                      </button>
+                    </form>
+                  <% } %>
+                </div>
+              <% } else { %>
+                <span class="text-xs text-gray-400">Sem acao</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div id="cancelModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-900/60 p-4">
+  <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+    <h3 class="text-lg font-semibold text-slate-900">Cancelar reserva</h3>
+    <p id="cancelModalText" class="mt-1 text-sm text-gray-600">Confirme o motivo do cancelamento.</p>
+
+    <form id="cancelModalForm" method="POST" class="mt-4 space-y-3">
+      <input type="hidden" name="date" value="<%= selectedDate %>" />
+      <label class="block text-sm text-gray-700">
+        Motivo
+        <textarea
+          name="cancel_reason"
+          required
+          minlength="3"
+          rows="3"
+          class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+          placeholder="Informe o motivo do cancelamento"
+        ></textarea>
+      </label>
+
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" id="closeCancelModal" class="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Voltar</button>
+        <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">Confirmar cancelamento</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const modal = document.getElementById("cancelModal");
+    const form = document.getElementById("cancelModalForm");
+    const text = document.getElementById("cancelModalText");
+    const openButtons = document.querySelectorAll(".open-cancel-modal");
+    const closeButton = document.getElementById("closeCancelModal");
+
+    function openModal(bookingId, clientName) {
+      form.action = "/bookings/" + bookingId + "/cancel";
+      text.textContent = "Cancelar reserva de " + clientName + ". Esta acao sera registrada.";
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeModal() {
+      modal.classList.remove("flex");
+      modal.classList.add("hidden");
+    }
+
+    openButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        openModal(button.dataset.bookingId, button.dataset.bookingClient);
+      });
+    });
+
+    closeButton.addEventListener("click", closeModal);
+    modal.addEventListener("click", function (event) {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+  })();
+</script>
+
+<%- include("../partials/footer") %>

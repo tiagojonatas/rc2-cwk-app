@@ -1,0 +1,215 @@
+<%
+  const pageTitle = "Dashboard";
+  const activeMenu = "dashboard";
+  const topbarDate = currentDate;
+  const topbarActionLink = "/bookings/create";
+  const topbarActionLabel = "+ Nova reserva";
+%>
+<%- include("partials/header", { pageTitle }) %>
+<%- include("partials/sidebar", { pageTitle, activeMenu, topbarDate, topbarActionLink, topbarActionLabel }) %>
+
+<section class="mb-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
+  <p class="text-sm text-slate-700">Olá, <span class="font-semibold"><%= typeof greetingName !== "undefined" ? greetingName : "Usuario" %></span></p>
+  <p class="mt-1 text-xs text-gray-500">Último acesso: <%= typeof lastAccessText !== "undefined" ? lastAccessText : "-" %></p>
+</section>
+
+<p class="mb-6 text-sm text-gray-500"><%= summaryText %></p>
+
+<style>
+  @keyframes cardFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  .metric-card {
+    animation: cardFadeIn 420ms ease-out both;
+  }
+</style>
+
+<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <article class="metric-card rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" style="animation-delay: 40ms;">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-semibold text-gray-600">Clientes ativos</p>
+      <svg class="h-4 w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path d="M13 7a3 3 0 11-6 0 3 3 0 016 0zM5 14a4 4 0 118 0v1H5v-1zM15 8a2 2 0 100 4 2 2 0 000-4zM14 14a4.98 4.98 0 012-3.968A3.5 3.5 0 0118.5 13v2H15v-1z" />
+      </svg>
+    </div>
+    <h3 class="mt-2 text-3xl font-semibold text-blue-600"><%= metrics.activeClients %></h3>
+    <div class="mt-4 h-2 rounded-full bg-indigo-100">
+      <div class="h-2 w-2/3 rounded-full bg-indigo-500"></div>
+    </div>
+    <p class="mt-2 text-xs font-medium text-gray-500">+12% este mês</p>
+  </article>
+
+  <article class="metric-card rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" style="animation-delay: 90ms;">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-semibold text-gray-600">Receita do mês</p>
+      <svg class="h-4 w-4 text-emerald-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-12.5a.75.75 0 00-1.5 0v.33a2.75 2.75 0 00.75 5.395v2.272a1.25 1.25 0 01-1-.998.75.75 0 10-1.47.3 2.75 2.75 0 002.47 2.18v.518a.75.75 0 001.5 0v-.53a2.75 2.75 0 00-.75-5.392V7.305a1.25 1.25 0 011 .998.75.75 0 001.47-.3 2.75 2.75 0 00-2.47-2.18V5.5z" clip-rule="evenodd" />
+      </svg>
+    </div>
+    <h3 class="mt-2 text-3xl font-semibold text-green-600"><%= metrics.receivedMonth %></h3>
+    <div class="mt-4 h-2 rounded-full bg-blue-100">
+      <div class="h-2 w-4/5 rounded-full bg-blue-500"></div>
+    </div>
+    <p class="mt-2 text-xs font-medium text-gray-500">+8% estimado</p>
+  </article>
+
+  <article class="metric-card rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" style="animation-delay: 140ms;">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-semibold text-gray-600">Reservas hoje</p>
+      <svg class="h-4 w-4 text-indigo-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M6 2a1 1 0 012 0v1h4V2a1 1 0 112 0v1h1a2 2 0 012 2v2H3V5a2 2 0 012-2h1V2zm12 7H2v6a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd" />
+      </svg>
+    </div>
+    <h3 class="mt-2 text-3xl font-semibold text-indigo-600"><%= metrics.todayBookings %></h3>
+    <div class="mt-4 h-2 rounded-full bg-emerald-100">
+      <div class="h-2 w-1/2 rounded-full bg-emerald-500"></div>
+    </div>
+    <p class="mt-2 text-xs font-medium text-gray-500">+5% agenda diária</p>
+  </article>
+
+  <article class="metric-card rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md" style="animation-delay: 190ms;">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-semibold text-gray-600">Pagamentos pendentes</p>
+      <svg class="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M18 10A8 8 0 112 10a8 8 0 0116 0zm-8-4a1 1 0 00-1 1v3a1 1 0 102 0V7a1 1 0 00-1-1zm0 8a1.25 1.25 0 100-2.5A1.25 1.25 0 0010 14z" clip-rule="evenodd" />
+      </svg>
+    </div>
+    <h3 class="mt-2 text-3xl font-semibold text-red-600"><%= metrics.pendingPayments %> pendentes</h3>
+    <p class="mt-1 text-sm font-medium text-slate-600">Total: <%= metrics.pendingAmount %></p>
+    <div class="mt-4 h-2 rounded-full bg-red-100">
+      <div class="h-2 w-1/3 rounded-full bg-red-500"></div>
+    </div>
+    <p class="mt-2 text-xs font-medium text-gray-500">-5% em relação ao pico</p>
+  </article>
+</section>
+
+<section class="mt-8 rounded-xl border border-red-200 border-l-4 border-l-red-500 bg-red-100 p-6 shadow-sm transition-all duration-200">
+  <div class="mb-4 flex items-center gap-2">
+    <svg class="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l6.516 11.592c.75 1.334-.213 2.99-1.742 2.99H3.484c-1.53 0-2.492-1.656-1.742-2.99L8.257 3.1zM11 7a1 1 0 10-2 0v4a1 1 0 102 0V7zm-1 8a1.25 1.25 0 100-2.5A1.25 1.25 0 0010 15z" clip-rule="evenodd" />
+    </svg>
+    <h3 class="text-lg font-semibold text-red-700">
+      Atenção necessária (<%= overdueAlerts.length %> <%= overdueAlerts.length === 1 ? "cliente em atraso" : "clientes em atraso" %>)
+    </h3>
+  </div>
+
+  <% if (overdueAlerts.length === 0) { %>
+    <p class="text-sm text-red-600">Nenhum cliente com pagamento atrasado no momento.</p>
+  <% } else { %>
+    <ul class="space-y-3">
+      <% overdueAlerts.forEach((alert) => { %>
+        <li class="flex flex-col gap-3 rounded-xl border border-red-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="min-w-0">
+            <p class="font-medium text-red-700"><%= alert.client_name %></p>
+            <p class="mt-1 text-red-600">
+              Valor devido:
+              <span class="ml-1 text-lg font-bold text-red-700"><%= Number(alert.total_due || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) %></span>
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="rounded-lg bg-red-100 px-3 py-1 text-sm font-semibold text-red-700"><%= alert.days_overdue %> dia(s) de atraso</span>
+            <a
+              href="/finance?client_name=<%= encodeURIComponent(alert.client_name) %>"
+              class="rounded-md bg-red-200 px-2 py-1 text-xs font-semibold text-red-700 transition-all duration-200 hover:opacity-80"
+            >
+              Cobrar
+            </a>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<section class="mt-8 grid gap-6 xl:grid-cols-3">
+  <article class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100 xl:col-span-2">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-slate-900">Reservas do dia</h3>
+      <span class="text-sm text-gray-500"><%= upcomingBookings.length %> reserva(s)</span>
+    </div>
+
+    <% if (upcomingBookings.length === 0) { %>
+      <p class="text-sm text-gray-500">Nenhuma reserva para hoje.</p>
+    <% } else { %>
+      <ul class="space-y-3">
+        <% upcomingBookings.forEach((booking) => { %>
+          <li class="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 shadow-sm">
+            <div>
+              <p class="font-medium text-slate-800"><%= booking.client_name %></p>
+              <p class="text-sm text-gray-500">Sala: <%= booking.room_name %></p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="rounded-lg bg-indigo-100 px-3 py-1 text-sm font-semibold text-indigo-700">
+                <%= String(booking.start_time).slice(0, 5) %> - <%= String(booking.end_time).slice(0, 5) %>
+              </span>
+              <span class="rounded-full px-2 py-1 text-xs font-semibold <%= booking.booking_status === 'Confirmado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' %>">
+                <%= booking.booking_status %>
+              </span>
+            </div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </article>
+
+  <article class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+    <h3 class="text-lg font-semibold text-slate-900">Visão de salas</h3>
+    <p class="mt-1 text-sm text-gray-500">Reservas do dia por sala</p>
+
+    <%
+      const maxUsageToday = roomOverview.reduce((max, room) => {
+        const count = Number(room.bookings_count || 0);
+        return count > max ? count : max;
+      }, 0);
+    %>
+
+    <ul class="mt-5 space-y-4">
+      <% if (roomOverview.length === 0) { %>
+        <li class="text-sm text-gray-500">Nenhuma sala cadastrada.</li>
+      <% } %>
+
+      <% roomOverview.forEach((room) => { %>
+        <%
+          const maxCapacity = 5;
+          const bookingsCount = Number(room.bookings_count || 0);
+          const usagePercent = Math.min((bookingsCount / maxCapacity) * 100, 100);
+          const isTopRoom = maxUsageToday > 0 && bookingsCount === maxUsageToday;
+          let usageColor = "bg-emerald-500";
+
+          if (usagePercent > 70) {
+            usageColor = "bg-red-500";
+          } else if (usagePercent > 40) {
+            usageColor = "bg-amber-500";
+          }
+        %>
+        <li class="rounded-lg <%= isTopRoom ? 'border border-indigo-200 bg-indigo-50 p-3' : '' %>">
+          <div class="mb-1 flex items-center justify-between text-sm">
+            <div class="flex items-center gap-2">
+              <span class="font-medium text-slate-700"><%= room.name %></span>
+              <% if (isTopRoom) { %>
+                <span class="rounded-full bg-indigo-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">Mais usada</span>
+              <% } %>
+            </div>
+            <span class="text-gray-500"><%= bookingsCount %> / <%= maxCapacity %> reservas</span>
+          </div>
+          <p class="mb-2 text-xs text-gray-500">Capacidade simulada: máximo <%= maxCapacity %> reservas/dia</p>
+          <div class="h-2 rounded-full bg-gray-100">
+            <div
+              class="h-2 rounded-full <%= usageColor %>"
+              style="width: <%= usagePercent %>%"
+            ></div>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  </article>
+</section>
+
+<%- include("partials/footer") %>

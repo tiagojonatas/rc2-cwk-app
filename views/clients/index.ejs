@@ -1,0 +1,51 @@
+<%
+  const pageTitle = "Clientes";
+  const activeMenu = "clients";
+%>
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
+
+<div class="mb-4 flex justify-end">
+  <a class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" href="/clients/create">Novo Cliente</a>
+</div>
+
+<section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nome</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Empresa</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Telefone</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Email</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Plano</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Mensalidade</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acoes</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <% if (clients.length === 0) { %>
+          <tr>
+            <td class="px-4 py-4 text-sm text-gray-500" colspan="8">Nenhum cliente cadastrado.</td>
+          </tr>
+        <% } %>
+
+        <% clients.forEach((client) => { %>
+          <tr>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= client.name %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= client.company_name || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= client.phone || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= client.email || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= client.plan || "-" %></td>
+            <td class="px-4 py-4 text-sm text-gray-700">R$ <%= Number(client.monthly_value || 0).toFixed(2) %></td>
+            <td class="px-4 py-4 text-sm text-gray-700"><%= client.status %></td>
+            <td class="px-4 py-4 text-sm"><a class="text-blue-700 hover:underline" href="/clients/<%= client.id %>/edit">Editar</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include("../partials/footer") %>

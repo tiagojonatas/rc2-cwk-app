@@ -1,0 +1,49 @@
+<%- include("../partials/header", { pageTitle }) %>
+<%- include("../partials/sidebar", { pageTitle, activeMenu, topbarDate, topbarActionLink, topbarActionLabel }) %>
+
+<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Cliente</p>
+    <h3 class="mt-2 text-2xl font-semibold text-slate-900"><%= clientData.name %></h3>
+  </article>
+  <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Proximas reservas</p>
+    <h3 class="mt-2 text-2xl font-semibold text-indigo-600"><%= nextBookings.length %></h3>
+  </article>
+  <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Proxima cobranca</p>
+    <% if (nextInvoice) { %>
+      <h3 class="mt-2 text-2xl font-semibold text-red-600"><%= Number(nextInvoice.amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) %></h3>
+      <p class="mt-1 text-sm text-gray-500">Vence em <%= new Date(nextInvoice.due_date).toLocaleDateString("pt-BR") %></p>
+    <% } else { %>
+      <h3 class="mt-2 text-2xl font-semibold text-emerald-600">Sem pendencias</h3>
+    <% } %>
+  </article>
+</section>
+
+<section class="mt-8 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+  <div class="mb-4 flex items-center justify-between">
+    <h3 class="text-lg font-semibold text-slate-900">Proximas reservas</h3>
+    <a href="/client/bookings" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-indigo-700">Nova reserva</a>
+  </div>
+
+  <% if (nextBookings.length === 0) { %>
+    <p class="text-sm text-gray-500">Voce ainda nao possui reservas futuras.</p>
+  <% } else { %>
+    <ul class="space-y-3">
+      <% nextBookings.forEach((booking) => { %>
+        <li class="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
+          <div>
+            <p class="font-medium text-slate-800"><%= booking.room_name %></p>
+            <p class="text-sm text-gray-500"><%= new Date(booking.date).toLocaleDateString("pt-BR") %></p>
+          </div>
+          <span class="rounded-lg bg-indigo-100 px-3 py-1 text-sm font-semibold text-indigo-700">
+            <%= String(booking.start_time).slice(0, 5) %> - <%= String(booking.end_time).slice(0, 5) %>
+          </span>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<%- include("../partials/footer") %>
