@@ -74,8 +74,8 @@
 <main class="p-6 md:ml-64 md:p-8">
   <header class="mb-8 flex items-start justify-between gap-4">
     <div>
-      <h2 class="text-3xl font-semibold text-gray-900"><%= pageTitle || "Dashboard" %></h2>
-      <p class="mt-1 text-sm text-gray-500 capitalize">
+      <h2 class="font-display-modern text-3xl font-semibold text-gray-900 md:text-4xl"><%= pageTitle || "Dashboard" %></h2>
+      <p class="mt-1 text-sm font-medium text-gray-500">
         <%= typeof topbarDate !== "undefined" && topbarDate ? topbarDate : new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }) %>
       </p>
     </div>
