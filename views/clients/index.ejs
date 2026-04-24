@@ -9,6 +9,55 @@
   <a class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" href="/clients/create">Novo Cliente</a>
 </div>
 
+<style>
+    .search-container {
+        margin-bottom: 20px;
+    }
+
+    #searchInput {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #007bff;
+        border-radius: 5px;
+        font-size: 16px;
+        outline: none;
+    }
+
+    #searchInput:focus {
+        border-color: #0056b3;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+</style>
+
+<div class="search-container">
+    <input type="text" id="searchInput" placeholder="Buscar clientes..." oninput="filterClients()">
+</div>
+
+<script>
+    function filterClients() {
+        const input = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('table tbody tr');
+
+        rows.forEach(row => {
+            const name = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+            const company = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+            const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+            const email = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+
+            if (
+                name.includes(input) || 
+                company.includes(input) || 
+                phone.includes(input) || 
+                email.includes(input)
+            ) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+</script>
+
 <section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">

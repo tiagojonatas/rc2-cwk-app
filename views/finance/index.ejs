@@ -25,6 +25,16 @@
   </div>
 <% } %>
 
+<div class="filter-container mb-4">
+    <select id="statusFilter" onchange="filterFinance()">
+        <option value="">Todos os Status</option>
+        <option value="pago">Pago</option>
+        <option value="atrasado">Atrasado</option>
+        <option value="pendente">Pendente</option>
+    </select>
+    <input type="text" id="searchInput" placeholder="Buscar por cliente..." oninput="filterFinance()">
+</div>
+
 <section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-100">
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
@@ -55,7 +65,7 @@
             <td class="px-4 py-4 text-base font-semibold text-gray-900">R$ <%= Number(invoice.amount || 0).toFixed(2) %></td>
             <td class="px-4 py-4 text-sm text-gray-500"><%= new Date(invoice.due_date).toLocaleDateString("pt-BR") %></td>
             <td class="px-4 py-4">
-              <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium tracking-wide <%= invoice.statusClass === 'status-paid' ? 'bg-green-100 text-green-700' : invoice.statusClass === 'status-overdue' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700' %>"><%= invoice.displayStatus %></span>
+              <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium tracking-wide <%= invoice.statusClass === 'status-paid' ? 'bg-green-100 text-green-700' : invoice.statusClass === 'status-overdue' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700' %>"><%= invoice.displayStatus.toLowerCase() %></span>
             </td>
             <td class="px-4 py-4">
               <% if (invoice.status !== "paid" && canManageFinance) { %>
@@ -72,5 +82,48 @@
     </table>
   </div>
 </section>
+
+<script>
+    function filterFinance() {
+        const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('table tbody tr');
+
+        rows.forEach(row => {
+            const client = row.querySelector('td:nth-child(1)').textContent.toLowerCase();
+            const status = row.querySelector('td:nth-child(5) span').textContent.toLowerCase();
+
+            if (
+                (statusFilter === '' || status.includes(statusFilter)) &&
+                (client.includes(searchInput))
+            ) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+</script>
+
+<style>
+    .filter-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    #statusFilter, #searchInput {
+        padding: 10px;
+        border: 2px solid #007bff;
+        border-radius: 5px;
+        font-size: 16px;
+        outline: none;
+    }
+
+    #statusFilter:focus, #searchInput:focus {
+        border-color: #0056b3;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+</style>
 
 <%- include("../partials/footer") %>
