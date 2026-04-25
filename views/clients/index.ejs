@@ -10,12 +10,13 @@
 </div>
 
 <style>
-    .search-container {
+    .filter-container {
+        display: flex;
+        gap: 10px;
         margin-bottom: 20px;
     }
 
-    #searchInput {
-        width: 100%;
+    #searchInput, #statusFilter {
         padding: 10px;
         border: 2px solid #007bff;
         border-radius: 5px;
@@ -23,19 +24,29 @@
         outline: none;
     }
 
-    #searchInput:focus {
+    #searchInput {
+        flex: 1;
+    }
+
+    #searchInput:focus, #statusFilter:focus {
         border-color: #0056b3;
         box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
     }
 </style>
 
-<div class="search-container">
+<div class="filter-container">
+    <select id="statusFilter" onchange="filterClients()">
+        <option value="">Todos os Status</option>
+        <option value="ativo">Ativo</option>
+        <option value="inativo">Inativo</option>
+    </select>
     <input type="text" id="searchInput" placeholder="Buscar clientes..." oninput="filterClients()">
 </div>
 
 <script>
     function filterClients() {
         const input = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
         const rows = document.querySelectorAll('table tbody tr');
 
         rows.forEach(row => {
@@ -43,13 +54,27 @@
             const company = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
             const phone = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
             const email = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+            const statusSpan = row.querySelector('td:nth-child(7) span');
+            const statusText = statusSpan ? statusSpan.textContent.trim().toLowerCase() : '';
+            
+            // Verificar se é ativo ou inativo
+            const isInactive = statusText.includes('inativo');
+            const isActive = statusText.includes('ativo');
 
-            if (
+            const matchesSearch = 
                 name.includes(input) || 
                 company.includes(input) || 
                 phone.includes(input) || 
-                email.includes(input)
-            ) {
+                email.includes(input);
+            
+            let matchesStatus = true;
+            if (statusFilter === 'ativo') {
+                matchesStatus = isActive && !isInactive;
+            } else if (statusFilter === 'inativo') {
+                matchesStatus = isInactive;
+            }
+
+            if (matchesSearch && matchesStatus) {
                 row.style.display = '';
             } else {
                 row.style.display = 'none';

@@ -89,6 +89,32 @@ function normalizeBookingStatus(status) {
   return { label: "Pendente", badge: "bg-amber-100 text-amber-700" };
 }
 
+exports.getReservasPorSalaData = async (req, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const roomId = req.params.roomId;
+    const date = req.params.date;
+
+    const bookings = await query(
+      `SELECT b.*, c.name as client_name, r.name as room_name
+       FROM bookings b
+       INNER JOIN clients c ON b.client_id = c.id
+       INNER JOIN rooms r ON b.room_id = r.id
+       WHERE b.company_id = ? AND b.room_id = ? AND b.date = ?
+         AND b.status != 'cancelled_by_admin'
+         AND b.status != 'cancelled_by_client'
+         AND b.status != 'cancelado'
+       ORDER BY b.start_time ASC`,
+      [companyId, roomId, date]
+    );
+
+    res.json(bookings);
+  } catch (error) {
+    console.error('Erro ao buscar reservas:', error);
+    res.status(500).json({ error: 'Erro ao buscar reservas' });
+  }
+};
+
 exports.index = async (req, res) => {
   try {
     const companyId = getCompanyId(req);
@@ -299,3 +325,4 @@ exports.cancel = async (req, res) => {
     return res.redirect("/agenda?error=Erro+ao+cancelar+reserva");
   }
 };
+
