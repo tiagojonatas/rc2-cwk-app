@@ -5,8 +5,7 @@
     "main":  "server.js",
     "scripts":  {
                     "dev":  "nodemon server.js",
-                    "start":  "node server.js",
-                    "setup:booking-status": "node scripts/setup-booking-status.js",
+                    "start":  "node server.js",                    "migrate":  "node scripts/init-schema.js",                    "setup:booking-status": "node scripts/setup-booking-status.js",
                     "setup:access-control": "node scripts/setup-access-control.js",
                     "setup:invoice-service-type": "node scripts/setup-invoice-service-type.js"
                 },
