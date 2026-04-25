@@ -50,7 +50,7 @@ function requireAdminOrManager(req, res, next) {
     return res.redirect("/login");
   }
 
-  if (!hasRole(req, ["admin", "manager"])) {
+  if (!hasRole(req, ["admin", "manager", "funcionario"])) {
     return res.status(403).send("Acesso negado.");
   }
 

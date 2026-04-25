@@ -5,7 +5,7 @@
 <%- include("../partials/header", { pageTitle }) %>
 <%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
 
-<% const canManageFinance = currentUser && (currentUser.role === "admin" || currentUser.role === "manager"); %>
+<% const canManageFinance = currentUser && (currentUser.role === "admin" || currentUser.role === "manager" || currentUser.role === "funcionario"); %>
 <%
   function serviceTypeLabel(value) {
     const labels = {
