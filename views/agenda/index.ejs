@@ -5,6 +5,9 @@
   const topbarActionLink = "/agenda/nova";
   const topbarActionLabel = "+ Nova reserva";
 
+  // Get selected date from controller (passed via query param)
+  const currentSelectedDate = locals.selectedDate || null;
+
   function statusView(status) {
     if (status === "confirmed") {
       return { label: "Confirmada", badge: "bg-emerald-100 text-emerald-700" };
@@ -16,6 +19,13 @@
       return { label: "No-show", badge: "bg-slate-200 text-slate-700" };
     }
     return { label: "Pendente", badge: "bg-amber-100 text-amber-700" };
+  }
+
+  function formatOccupation(lastEndMinutes) {
+    if (!lastEndMinutes) return null;
+    const h = Math.floor(lastEndMinutes / 60);
+    const m = lastEndMinutes % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
 
   const now = new Date();
@@ -31,16 +41,31 @@
     const date = new Date(startOfWeek);
     date.setDate(startOfWeek.getDate() + i);
     const iso = date.toISOString().slice(0, 10);
-    const dayBookings = (bookings || []).filter((booking) => booking.date === iso);
+    const dayBookings = (weekBookings || []).filter((booking) => {
+      const bookingDate = typeof booking.date === 'string' ? booking.date.slice(0, 10) : new Date(booking.date).toISOString().slice(0, 10);
+      return bookingDate === iso;
+    });
+    const availability = (dayAvailability || {})[iso] || { count: 0, lastEndTime: null };
 
     weekDays.push({
       iso,
       dayLabel: dayFormatter.format(date).replace(".", ""),
       dayNumber: String(date.getDate()).padStart(2, "0"),
       isToday: iso === todayStr,
+      isSelected: iso === currentSelectedDate,
       bookings: dayBookings,
+      bookingCount: availability.count,
+      lastOccupation: formatOccupation(availability.lastEndTime),
     });
   }
+
+  // Determine which date to show in the list (selected or today)
+  const listDate = currentSelectedDate || todayStr;
+  const listDateLabel = listDate === todayStr ? 'hoje' : new Date(listDate + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+  const listBookings = (weekBookings || []).filter((booking) => {
+    const bookingDate = typeof booking.date === 'string' ? booking.date.slice(0, 10) : new Date(booking.date).toISOString().slice(0, 10);
+    return bookingDate === listDate;
+  });
 %>
 <%- include("../partials/header", { pageTitle }) %>
 <%- include("../partials/sidebar", { pageTitle, activeMenu, topbarDate, topbarActionLink, topbarActionLabel }) %>
@@ -56,36 +81,43 @@
   <h3 class="app-section-title mb-3">Semana atual</h3>
   <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
     <% weekDays.forEach((day) => { %>
-      <article class="rounded-xl border p-3 transition-all duration-200 <%= day.isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white' %>">
+      <a href="/agenda?date=<%= day.iso %>" 
+         class="block rounded-xl border p-3 transition-all duration-200 cursor-pointer
+                <%= day.isSelected ? 'border-indigo-600 bg-indigo-100 ring-2 ring-indigo-200' : (day.isToday ? 'border-indigo-500 bg-indigo-50 hover:border-indigo-400' : 'border-gray-200 bg-white hover:border-gray-300') %>">
         <p class="app-label normal-case text-gray-500"><%= day.dayLabel %></p>
         <p class="text-sm font-medium text-gray-900"><%= day.dayNumber %></p>
 
-        <div class="mt-2 space-y-2">
+        <div class="mt-2 space-y-1.5">
           <% if (day.bookings.length === 0) { %>
             <p class="text-xs text-gray-400">Livre</p>
           <% } else { %>
-            <% day.bookings.forEach((booking) => { const view = statusView(booking.status); %>
-              <div class="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1">
-                <p class="truncate text-xs font-medium text-gray-900"><%= booking.client_name %></p>
-                <p class="text-[11px] text-gray-500"><%= String(booking.start_time).slice(0, 5) %> - <%= String(booking.end_time).slice(0, 5) %></p>
-                <span class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide <%= view.badge %>"><%= view.label %></span>
+            <% day.bookings.slice(0, 4).forEach((booking) => { %>
+              <% const statusClass = booking.status === 'confirmed' ? 'bg-emerald-100 border-emerald-200' : 'bg-amber-100 border-amber-200' %>
+              <% const textClass = booking.status === 'confirmed' ? 'text-emerald-700' : 'text-amber-700' %>
+              <% const name = booking.client_name.length > 12 ? booking.client_name.substring(0, 10) + '...' : booking.client_name %>
+              <div class="rounded-lg border <%= statusClass %> px-2 py-1">
+                <p class="truncate text-xs font-medium <%= textClass %>"><%= name %></p>
+                <p class="text-[10px] <%= textClass %> opacity-75"><%= String(booking.start_time).slice(0, 5) %>-<%= String(booking.end_time).slice(0, 5) %></p>
               </div>
             <% }) %>
+            <% if (day.bookings.length > 4) { %>
+              <p class="text-[10px] text-gray-400">+<%= day.bookings.length - 4 %> mais</p>
+            <% } %>
           <% } %>
         </div>
-      </article>
+      </a>
     <% }) %>
   </div>
 </section>
 
 <section class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-  <h3 class="app-section-title">Reservas de hoje</h3>
+  <h3 class="app-section-title">Reservas <%= listDateLabel %></h3>
 
-  <% if (!bookings || bookings.length === 0) { %>
-    <p class="mt-3 text-sm text-gray-500">Nenhuma reserva para hoje</p>
+  <% if (!listBookings || listBookings.length === 0) { %>
+    <p class="mt-3 text-sm text-gray-500">Nenhuma reserva para <%= listDateLabel %></p>
   <% } else { %>
     <ul class="mt-4 space-y-3">
-      <% bookings.forEach((booking) => { const view = statusView(booking.status); %>
+      <% listBookings.forEach((booking) => { const view = statusView(booking.status); %>
         <li class="flex flex-col gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p class="text-sm font-medium text-gray-900"><%= booking.client_name %></p>

@@ -94,7 +94,20 @@ exports.index = async (req, res) => {
     const companyId = getCompanyId(req);
     const today = getTodayDateISO();
 
-    const bookings = await query(
+    // Calculate week start (Sunday) and end (Saturday)
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setHours(0, 0, 0, 0);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+    const weekStartStr = startOfWeek.toISOString().slice(0, 10);
+    const weekEndStr = endOfWeek.toISOString().slice(0, 10);
+
+    // Fetch all bookings for the week
+    const weekBookings = await query(
       `SELECT bookings.id,
               bookings.date,
               bookings.start_time,
@@ -106,10 +119,37 @@ exports.index = async (req, res) => {
        INNER JOIN clients ON clients.id = bookings.client_id
        INNER JOIN rooms ON rooms.id = bookings.room_id
        WHERE bookings.company_id = ?
-         AND bookings.date = ?
-       ORDER BY bookings.start_time ASC`,
-      [companyId, today]
+         AND bookings.date >= ? AND bookings.date <= ?
+         AND bookings.status != 'cancelled_by_admin'
+         AND bookings.status != 'cancelled_by_client'
+         AND bookings.status != 'cancelado'
+       ORDER BY bookings.date ASC, bookings.start_time ASC`,
+      [companyId, weekStartStr, weekEndStr]
     );
+
+    // Fetch today's bookings for the detailed list
+    const todayBookings = weekBookings.filter((b) => b.date === today);
+
+    // Calculate availability for each day of the week
+    const dayAvailability = {};
+    for (let i = 0; i < 7; i += 1) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      const iso = date.toISOString().slice(0, 10);
+      dayAvailability[iso] = { count: 0, lastEndTime: null };
+    }
+
+    weekBookings.forEach((booking) => {
+      const iso = typeof booking.date === 'string' ? booking.date.slice(0, 10) : new Date(booking.date).toISOString().slice(0, 10);
+      if (dayAvailability[iso]) {
+        dayAvailability[iso].count += 1;
+        const endMinutes = timeToMinutes(booking.end_time);
+        const lastMinutes = dayAvailability[iso].lastEndTime;
+        if (lastMinutes === null || endMinutes > lastMinutes) {
+          dayAvailability[iso].lastEndTime = endMinutes;
+        }
+      }
+    });
 
     res.render("agenda/index", {
       pageTitle: "Agenda",
@@ -120,10 +160,15 @@ exports.index = async (req, res) => {
         month: "long",
         year: "numeric",
       }),
-      bookings: bookings.map((booking) => ({
+      bookings: todayBookings.map((booking) => ({
         ...booking,
         statusView: normalizeBookingStatus(booking.status),
       })),
+      weekBookings: weekBookings,
+      dayAvailability: dayAvailability,
+      weekStart: weekStartStr,
+      weekEnd: weekEndStr,
+      selectedDate: req.query.date || null,
       error: req.query.error || "",
       success: req.query.success || "",
     });

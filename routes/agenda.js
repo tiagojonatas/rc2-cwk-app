@@ -14,6 +14,7 @@ function requireAgendaAuth(req, res, next) {
 router.use(requireAgendaAuth);
 router.get("/", agendaController.index);
 router.get("/nova", agendaController.newForm);
+router.get("/api/reservas/:roomId/:date", agendaController.getReservasPorSalaData);
 router.post("/nova", agendaController.create);
 router.post("/:id/cancelar", agendaController.cancel);
 
