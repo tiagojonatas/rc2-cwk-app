@@ -17,7 +17,8 @@ function resolveServiceTypeLabel(value) {
 
 exports.index = async (req, res) => {
   try {
-    const invoices = await Invoice.getAll();
+    const companyId = Number((req.session && req.session.company_id) || 1);
+    const invoices = await Invoice.getAll(companyId);
     res.render("finance/index", { invoices });
   } catch (error) {
     res.status(500).send("Erro ao listar cobrancas.");
@@ -45,12 +46,16 @@ exports.create = async (req, res) => {
       return res.status(400).send("Dados invalidos para criar cobranca.");
     }
 
-    await Invoice.create({
-      client_id: clientId,
-      service_type: serviceType,
-      amount,
-      due_date: dueDate,
-    });
+    const companyId = Number((req.session && req.session.company_id) || 1);
+    await Invoice.create(
+      {
+        client_id: clientId,
+        service_type: serviceType,
+        amount,
+        due_date: dueDate,
+      },
+      companyId
+    );
     await logAudit(
       req,
       "create_invoice",
@@ -65,7 +70,8 @@ exports.create = async (req, res) => {
 
 exports.markAsPaid = async (req, res) => {
   try {
-    await Invoice.markAsPaid(req.params.id);
+    const companyId = Number((req.session && req.session.company_id) || 1);
+    await Invoice.markAsPaid(req.params.id, companyId);
     await logAudit(req, "pay_invoice", `Cobranca #${req.params.id} marcada como paga.`);
     res.redirect("/finance");
   } catch (error) {

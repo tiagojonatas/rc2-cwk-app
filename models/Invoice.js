@@ -1,6 +1,6 @@
 const { query } = require("../config/db");
 
-const FIXED_COMPANY_ID = 1;
+const DEFAULT_COMPANY_ID = 1;
 
 class Invoice {
   static async getServiceTypeColumn() {
@@ -17,15 +17,15 @@ class Invoice {
     return rows[0] ? rows[0].COLUMN_NAME : null;
   }
 
-  static async ensureDefaultCompany() {
+  static async ensureDefaultCompany(companyId = DEFAULT_COMPANY_ID) {
     await query(
       "INSERT INTO companies (id, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name = name",
-      [FIXED_COMPANY_ID, "Empresa Padrao RC2"]
+      [companyId, "Empresa Padrao RC2"]
     );
   }
 
-  static async getAll() {
-    await this.ensureDefaultCompany();
+  static async getAll(companyId = DEFAULT_COMPANY_ID) {
+    await this.ensureDefaultCompany(companyId);
     const serviceTypeColumn = await this.getServiceTypeColumn();
     const serviceTypeSelect = serviceTypeColumn
       ? `invoices.${serviceTypeColumn} AS service_type,`
@@ -38,7 +38,7 @@ class Invoice {
        INNER JOIN clients ON clients.id = invoices.client_id
        WHERE invoices.company_id = ?
        ORDER BY invoices.due_date ASC, invoices.id DESC`,
-      [FIXED_COMPANY_ID]
+      [companyId]
     );
 
     return rows.map((invoice) => {
@@ -65,33 +65,33 @@ class Invoice {
     });
   }
 
-  static async create(data) {
-    await this.ensureDefaultCompany();
+  static async create(data, companyId = DEFAULT_COMPANY_ID) {
+    await this.ensureDefaultCompany(companyId);
     const serviceTypeColumn = await this.getServiceTypeColumn();
 
     if (serviceTypeColumn) {
       return query(
         `INSERT INTO invoices (company_id, client_id, ${serviceTypeColumn}, amount, due_date, status)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [FIXED_COMPANY_ID, data.client_id, data.service_type || "other", data.amount, data.due_date, "pending"]
+        [companyId, data.client_id, data.service_type || "other", data.amount, data.due_date, "pending"]
       );
     }
 
     return query(
       `INSERT INTO invoices (company_id, client_id, amount, due_date, status)
        VALUES (?, ?, ?, ?, ?)`,
-      [FIXED_COMPANY_ID, data.client_id, data.amount, data.due_date, "pending"]
+      [companyId, data.client_id, data.amount, data.due_date, "pending"]
     );
   }
 
-  static async markAsPaid(id) {
-    await this.ensureDefaultCompany();
+  static async markAsPaid(id, companyId = DEFAULT_COMPANY_ID) {
+    await this.ensureDefaultCompany(companyId);
 
     return query(
       `UPDATE invoices
        SET status = 'paid'
        WHERE id = ? AND company_id = ?`,
-      [id, FIXED_COMPANY_ID]
+      [id, companyId]
     );
   }
 }

@@ -444,19 +444,40 @@ exports.create = async (req, res) => {
     const numPeople = Number(req.body.num_people || req.body.num_pessoas || 0) || 0;
 
     if (bookingValueColumn && numPeopleColumn) {
-      await query(
+      const result = await query(
         `INSERT INTO bookings
           (company_id, client_id, room_id, date, start_time, end_time, status, cancel_reason, cancelled_by, ${bookingValueColumn}, ${numPeopleColumn})
          VALUES (?, ?, ?, ?, ?, ?, 'confirmed', NULL, NULL, ?, ?)`,
         [companyId, clientId, roomId, date, startTime, endTime, bookingValue, numPeople]
       );
+      // create invoice for the booking value if present
+      if (bookingValue > 0) {
+        try {
+          await query(
+            `INSERT INTO invoices (company_id, client_id, amount, due_date, status) VALUES (?, ?, ?, ?, 'pending')`,
+            [companyId, clientId, bookingValue, date]
+          );
+        } catch (err) {
+          console.error('Falha ao criar fatura para reserva:', err);
+        }
+      }
     } else if (bookingValueColumn) {
-      await query(
+      const result = await query(
         `INSERT INTO bookings
           (company_id, client_id, room_id, date, start_time, end_time, status, cancel_reason, cancelled_by, ${bookingValueColumn})
          VALUES (?, ?, ?, ?, ?, ?, 'confirmed', NULL, NULL, ?)`,
         [companyId, clientId, roomId, date, startTime, endTime, bookingValue]
       );
+      if (bookingValue > 0) {
+        try {
+          await query(
+            `INSERT INTO invoices (company_id, client_id, amount, due_date, status) VALUES (?, ?, ?, ?, 'pending')`,
+            [companyId, clientId, bookingValue, date]
+          );
+        } catch (err) {
+          console.error('Falha ao criar fatura para reserva:', err);
+        }
+      }
     } else if (numPeopleColumn) {
       await query(
         `INSERT INTO bookings
