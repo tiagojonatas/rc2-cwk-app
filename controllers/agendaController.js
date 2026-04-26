@@ -75,6 +75,20 @@ async function canPersistBookingValue() {
   return rows[0] ? rows[0].COLUMN_NAME : null;
 }
 
+async function canPersistNumPeople() {
+  const rows = await query(
+    `SELECT COLUMN_NAME
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'bookings'
+       AND COLUMN_NAME IN ('num_pessoas', 'num_people', 'people_count', 'pax')
+     ORDER BY FIELD(COLUMN_NAME, 'num_pessoas', 'num_people', 'people_count', 'pax')
+     LIMIT 1`
+  );
+
+  return rows[0] ? rows[0].COLUMN_NAME : null;
+}
+
 function normalizeBookingStatus(status) {
   const value = String(status || "").toLowerCase();
   if (value === "confirmed") {
@@ -132,26 +146,67 @@ exports.index = async (req, res) => {
     const weekStartStr = startOfWeek.toISOString().slice(0, 10);
     const weekEndStr = endOfWeek.toISOString().slice(0, 10);
 
-    // Fetch all bookings for the week
-    const weekBookings = await query(
-      `SELECT bookings.id,
-              bookings.date,
-              bookings.start_time,
-              bookings.end_time,
-              bookings.status,
-              clients.name AS client_name,
-              rooms.name AS room_name
+    // Optional filters from query params (simple, non-complex)
+    const filterRoom = req.query.room || null;
+    const filterStatus = req.query.status || null;
+    const filterDate = req.query.date || null;
+
+    // Build SQL with optional filters
+            let sql = `SELECT bookings.*,
+               clients.name AS client_name,
+               rooms.name AS room_name
+             FROM bookings
+               INNER JOIN clients ON clients.id = bookings.client_id
+               INNER JOIN rooms ON rooms.id = bookings.room_id
+               WHERE bookings.company_id = ?
+                 AND bookings.date >= ? AND bookings.date <= ?
+                 AND bookings.status != 'cancelled_by_admin'
+                 AND bookings.status != 'cancelled_by_client'
+                 AND bookings.status != 'cancelado'`;
+
+    const params = [companyId, weekStartStr, weekEndStr];
+
+    if (filterRoom) {
+      sql += ` AND bookings.room_id = ?`;
+      params.push(filterRoom);
+    }
+    if (filterStatus) {
+      sql += ` AND bookings.status = ?`;
+      params.push(filterStatus);
+    }
+    if (filterDate) {
+      sql += ` AND bookings.date = ?`;
+      params.push(filterDate);
+    }
+
+    sql += ` ORDER BY bookings.date ASC, bookings.start_time ASC`;
+
+    const weekBookings = await query(sql, params);
+
+    // Fetch rooms for filter dropdown
+    const rooms = await getRoomsWithPrice(companyId);
+
+    // Compute room usage for selected date (minutes booked / available minutes)
+    const selectedDateStr = req.query.date || today;
+    const dayBookingsRows = await query(
+      `SELECT room_id, start_time, end_time
        FROM bookings
-       INNER JOIN clients ON clients.id = bookings.client_id
-       INNER JOIN rooms ON rooms.id = bookings.room_id
-       WHERE bookings.company_id = ?
-         AND bookings.date >= ? AND bookings.date <= ?
-         AND bookings.status != 'cancelled_by_admin'
-         AND bookings.status != 'cancelled_by_client'
-         AND bookings.status != 'cancelado'
-       ORDER BY bookings.date ASC, bookings.start_time ASC`,
-      [companyId, weekStartStr, weekEndStr]
+       WHERE company_id = ? AND date = ? AND status = 'confirmed'`,
+      [companyId, selectedDateStr]
     );
+
+    const totalAvailableMinutes = (22 - 8) * 60; // same as calendar
+    const roomsUsage = (rooms || []).map((r) => {
+      const rowBookings = dayBookingsRows.filter((b) => Number(b.room_id) === Number(r.id));
+      const totalBooked = rowBookings.reduce((sum, b) => {
+        const s = timeToMinutes(String(b.start_time).slice(0,5));
+        const e = timeToMinutes(String(b.end_time).slice(0,5));
+        if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return sum;
+        return sum + (e - s);
+      }, 0);
+      const percent = Math.round((totalBooked / totalAvailableMinutes) * 100);
+      return { room_id: r.id, totalBooked, percent: isFinite(percent) ? percent : 0 };
+    });
 
     // Fetch today's bookings for the detailed list
     const todayBookings = weekBookings.filter((b) => b.date === today);
@@ -195,6 +250,10 @@ exports.index = async (req, res) => {
       weekStart: weekStartStr,
       weekEnd: weekEndStr,
       selectedDate: req.query.date || null,
+      rooms: rooms,
+      selectedRoom: filterRoom,
+      selectedStatus: filterStatus,
+      roomsUsage: roomsUsage,
       error: req.query.error || "",
       success: req.query.success || "",
     });
@@ -227,6 +286,110 @@ exports.newForm = async (req, res) => {
     });
   } catch (error) {
     res.status(500).send("Erro ao carregar formulário.");
+  }
+};
+
+exports.editForm = async (req, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const bookingId = req.params.id;
+
+    const [bookingRows] = await query(
+      `SELECT b.*, c.name as client_name, r.name as room_name
+       FROM bookings b
+       LEFT JOIN clients c ON b.client_id = c.id
+       LEFT JOIN rooms r ON b.room_id = r.id
+       WHERE b.company_id = ? AND b.id = ? LIMIT 1`,
+      [companyId, bookingId]
+    );
+
+    if (!bookingRows) {
+      return res.redirect('/agenda?error=Reserva+nao+encontrada');
+    }
+
+    const [clients, rooms] = await Promise.all([
+      query(`SELECT id, name FROM clients WHERE company_id = ? ORDER BY name ASC`, [companyId]),
+      getRoomsWithPrice(companyId),
+    ]);
+
+    res.render('agenda/nova-reserva', {
+      pageTitle: 'Editar reserva',
+      activeMenu: 'agenda',
+      clients,
+      rooms,
+      booking: bookingRows,
+      todayDate: getTodayDateISO(),
+      error: req.query.error || '',
+    });
+  } catch (err) {
+    res.status(500).send('Erro ao carregar edição.');
+  }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const bookingId = req.params.id;
+    const clientId = Number(req.body.client_id);
+    const roomId = Number(req.body.room_id);
+    const date = String(req.body.date || '');
+    const startTime = String(req.body.start_time || '');
+    const endTime = String(req.body.end_time || '');
+
+    if (!clientId || !roomId || !date || !startTime || !endTime) {
+      return res.redirect(`/agenda/${bookingId}/editar?error=Preencha+todos+os+campos+obrigatorios`);
+    }
+
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    if (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes) || endMinutes <= startMinutes) {
+      return res.redirect(`/agenda/${bookingId}/editar?error=Hora+fim+deve+ser+maior+que+hora+inicio`);
+    }
+
+    const conflict = await query(
+      `SELECT id FROM bookings WHERE company_id = ? AND room_id = ? AND date = ? AND id != ? AND status = 'confirmed' AND start_time < ? AND end_time > ? LIMIT 1`,
+      [companyId, roomId, date, bookingId, endTime, startTime]
+    );
+
+    if (conflict.length > 0) {
+      return res.redirect(`/agenda/${bookingId}/editar?error=Conflito+detectado+no+horario`);
+    }
+
+    const roomRows = await getRoomsWithPrice(companyId);
+    const selectedRoom = roomRows.find((room) => Number(room.id) === roomId);
+    const hourlyPrice = Number(selectedRoom ? selectedRoom.price_per_hour : 0);
+    const durationHours = (endMinutes - startMinutes) / 60;
+    const bookingValue = Number((durationHours * hourlyPrice).toFixed(2));
+
+    const bookingValueColumn = await canPersistBookingValue();
+    const numPeopleColumn = await canPersistNumPeople();
+    const numPeople = Number(req.body.num_people || req.body.num_pessoas || 0) || 0;
+
+    // Build dynamic update
+    const fields = [];
+    const params = [];
+    fields.push('client_id = ?'); params.push(clientId);
+    fields.push('room_id = ?'); params.push(roomId);
+    fields.push('date = ?'); params.push(date);
+    fields.push('start_time = ?'); params.push(startTime);
+    fields.push('end_time = ?'); params.push(endTime);
+
+    if (bookingValueColumn) { fields.push(`${bookingValueColumn} = ?`); params.push(bookingValue); }
+    if (numPeopleColumn) { fields.push(`${numPeopleColumn} = ?`); params.push(numPeople); }
+
+    params.push(bookingId, companyId);
+
+    const sql = `UPDATE bookings SET ${fields.join(', ')} WHERE id = ? AND company_id = ?`;
+    const result = await query(sql, params);
+
+    if (!result || result.affectedRows === 0) {
+      return res.redirect(`/agenda/${bookingId}/editar?error=Falha+ao+atualizar+reserva`);
+    }
+
+    return res.redirect('/agenda?success=Reserva+atualizada+com+sucesso');
+  } catch (err) {
+    console.error('Erro ao atualizar reserva:', err);
+    return res.redirect(`/agenda/${req.params.id}/editar?error=Erro+ao+atualizar`);
   }
 };
 
@@ -277,13 +440,29 @@ exports.create = async (req, res) => {
     const durationHours = (endMinutes - startMinutes) / 60;
     const bookingValue = Number((durationHours * hourlyPrice).toFixed(2));
     const bookingValueColumn = await canPersistBookingValue();
+    const numPeopleColumn = await canPersistNumPeople();
+    const numPeople = Number(req.body.num_people || req.body.num_pessoas || 0) || 0;
 
-    if (bookingValueColumn) {
+    if (bookingValueColumn && numPeopleColumn) {
+      await query(
+        `INSERT INTO bookings
+          (company_id, client_id, room_id, date, start_time, end_time, status, cancel_reason, cancelled_by, ${bookingValueColumn}, ${numPeopleColumn})
+         VALUES (?, ?, ?, ?, ?, ?, 'confirmed', NULL, NULL, ?, ?)`,
+        [companyId, clientId, roomId, date, startTime, endTime, bookingValue, numPeople]
+      );
+    } else if (bookingValueColumn) {
       await query(
         `INSERT INTO bookings
           (company_id, client_id, room_id, date, start_time, end_time, status, cancel_reason, cancelled_by, ${bookingValueColumn})
          VALUES (?, ?, ?, ?, ?, ?, 'confirmed', NULL, NULL, ?)`,
         [companyId, clientId, roomId, date, startTime, endTime, bookingValue]
+      );
+    } else if (numPeopleColumn) {
+      await query(
+        `INSERT INTO bookings
+          (company_id, client_id, room_id, date, start_time, end_time, status, cancel_reason, cancelled_by, ${numPeopleColumn})
+         VALUES (?, ?, ?, ?, ?, ?, 'confirmed', NULL, NULL, ?)`,
+        [companyId, clientId, roomId, date, startTime, endTime, numPeople]
       );
     } else {
       await query(
@@ -323,6 +502,61 @@ exports.cancel = async (req, res) => {
     return res.redirect("/agenda?success=Reserva+cancelada+com+sucesso");
   } catch (error) {
     return res.redirect("/agenda?error=Erro+ao+cancelar+reserva");
+  }
+};
+
+exports.reschedule = async (req, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const bookingId = req.params.id;
+    const date = String(req.body.date || req.body.new_date || "");
+    const startTime = String(req.body.start_time || req.body.new_start_time || "");
+    const endTime = String(req.body.end_time || req.body.new_end_time || "");
+
+    if (!date || !startTime || !endTime) {
+      return res.status(400).json({ success: false, message: "Parâmetros insuficientes" });
+    }
+
+    // Basic validation
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+    if (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes) || endMinutes <= startMinutes) {
+      return res.status(400).json({ success: false, message: "Horários inválidos" });
+    }
+
+    // Check conflicts excluding current booking
+    const conflict = await query(
+      `SELECT id
+       FROM bookings
+       WHERE company_id = ?
+         AND id != ?
+         AND date = ?
+         AND start_time < ?
+         AND end_time > ?
+         AND status = 'confirmed'
+       LIMIT 1`,
+      [companyId, bookingId, date, endTime, startTime]
+    );
+
+    if (conflict.length > 0) {
+      return res.status(409).json({ success: false, message: 'Conflito detectado para o novo horário' });
+    }
+
+    const result = await query(
+      `UPDATE bookings
+       SET date = ?, start_time = ?, end_time = ?
+       WHERE id = ? AND company_id = ?`,
+      [date, startTime, endTime, bookingId, companyId]
+    );
+
+    if (!result || result.affectedRows === 0) {
+      return res.status(400).json({ success: false, message: 'Reserva não pôde ser atualizada' });
+    }
+
+    return res.json({ success: true, message: 'Reserva atualizada' });
+  } catch (error) {
+    console.error('Erro ao reagendar:', error);
+    return res.status(500).json({ success: false, message: 'Erro ao reagendar' });
   }
 };
 

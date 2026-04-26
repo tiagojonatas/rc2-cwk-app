@@ -2,23 +2,27 @@
   const pageTitle = "Nova reserva";
   const activeMenu = "agenda";
 %>
+<%
+  // Avoid referencing template param `booking` before initialization — use local alias
+  var bookingLocal = (typeof booking !== 'undefined') ? booking : null;
+%>
 <%- include("../partials/header", { pageTitle }) %>
 <%- include("../partials/sidebar", { pageTitle, activeMenu }) %>
 
 <section class="max-w-4xl rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-  <h3 class="text-lg font-semibold text-slate-900">Nova reserva</h3>
+  <h3 class="text-lg font-semibold text-slate-900"><%= bookingLocal ? 'Editar reserva' : 'Nova reserva' %></h3>
 
   <% if (error) { %>
     <p class="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><%= error %></p>
   <% } %>
 
-  <form method="POST" action="/agenda/nova" class="mt-5 grid gap-4 md:grid-cols-2">
+  <form id="newBookingForm" method="POST" action="<%= bookingLocal ? ('/agenda/' + bookingLocal.id + '/editar') : '/agenda/nova' %>" class="mt-5 grid gap-4 md:grid-cols-2">
     <label class="text-sm text-gray-600">
       Cliente
       <select name="client_id" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
         <option value="">Selecione</option>
         <% clients.forEach((client) => { %>
-          <option value="<%= client.id %>"><%= client.name %></option>
+          <option value="<%= client.id %>" <%= bookingLocal && Number(bookingLocal.client_id) === Number(client.id) ? 'selected' : '' %>><%= client.name %></option>
         <% }) %>
       </select>
     </label>
@@ -28,25 +32,36 @@
       <select id="room_id" name="room_id" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2">
         <option value="">Selecione</option>
         <% rooms.forEach((room) => { %>
-          <option value="<%= room.id %>" data-price="<%= Number(room.price_per_hour || 0) %>"><%= room.name %></option>
+          <option value="<%= room.id %>" data-price="<%= Number(room.price_per_hour || 0) %>" <%= bookingLocal && Number(bookingLocal.room_id) === Number(room.id) ? 'selected' : '' %>><%= room.name %></option>
         <% }) %>
       </select>
     </label>
 
     <label class="text-sm text-gray-600">
       Data
-      <input type="date" name="date" min="<%= todayDate %>" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+      <input id="date_input" type="date" name="date" value="<%= bookingLocal && bookingLocal.date ? (bookingLocal.date.toISOString ? bookingLocal.date.toISOString().slice(0,10) : String(bookingLocal.date).slice(0,10)) : '' %>" min="<%= todayDate %>" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
     </label>
 
     <label class="text-sm text-gray-600">
       Hora início
-      <input id="start_time" type="time" name="start_time" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+      <input id="start_time" type="time" name="start_time" value="<%= bookingLocal && bookingLocal.start_time ? String(bookingLocal.start_time).slice(0,5) : '' %>" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+    </label>
+
+    <label class="text-sm text-gray-600">
+      Número de pessoas
+      <input type="number" name="num_people" min="1" value="<%= bookingLocal && (bookingLocal.num_pessoas || bookingLocal.num_people || bookingLocal.people_count) ? (bookingLocal.num_pessoas || bookingLocal.num_people || bookingLocal.people_count) : 1 %>" class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
     </label>
 
     <label class="text-sm text-gray-600">
       Hora fim
-      <input id="end_time" type="time" name="end_time" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
+      <input id="end_time" type="time" name="end_time" value="<%= bookingLocal && bookingLocal.end_time ? String(bookingLocal.end_time).slice(0,5) : '' %>" required class="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" />
     </label>
+
+    <div id="occupiedInfo" class="md:col-span-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm hidden">
+      <p id="occupiedMessage" class="text-gray-700"></p>
+      <div id="occupiedList" class="mt-2 space-y-1 text-xs text-gray-600"></div>
+      <p id="suggestion" class="mt-2 text-sm text-amber-700 font-medium"></p>
+    </div>
 
     <div class="md:col-span-2">
       <label class="text-sm text-gray-600">
@@ -61,14 +76,14 @@
     </div>
 
     <div class="md:col-span-2">
-      <p class="text-sm text-gray-600">Status inicial</p>
+      <p class="text-sm text-gray-600">Status</p>
       <div class="mt-2 grid gap-2 sm:grid-cols-2">
         <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-indigo-500 bg-indigo-50 px-3 py-2 text-sm text-indigo-700">
-          <input type="radio" name="status_inicial" value="confirmed" checked class="h-4 w-4 accent-indigo-600" />
+          <input type="radio" name="status_inicial" value="confirmed" <%= bookingLocal && String(bookingLocal.status) === 'confirmed' ? 'checked' : (!bookingLocal ? 'checked' : '') %> class="h-4 w-4 accent-indigo-600" />
           <span>Confirmada</span>
         </label>
         <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700">
-          <input type="radio" name="status_inicial" value="pending" class="h-4 w-4 accent-indigo-600" />
+          <input type="radio" name="status_inicial" value="pending" <%= bookingLocal && String(bookingLocal.status) !== 'confirmed' ? 'checked' : '' %> class="h-4 w-4 accent-indigo-600" />
           <span>Pendente</span>
         </label>
       </div>
@@ -159,10 +174,118 @@
       });
     }
 
-    roomSelect.addEventListener("change", updateSummary);
-    startInput.addEventListener("change", updateSummary);
+    roomSelect.addEventListener("change", () => { updateSummary(); fetchAndShow(); });
+    startInput.addEventListener("change", () => { updateSummary(); fetchAndShow(); });
     endInput.addEventListener("change", updateSummary);
     statusOptions.forEach((input) => input.addEventListener("change", updateStatusHighlight));
+
+    const dateInput = document.getElementById('date_input');
+    const occupiedWrapper = document.getElementById('occupiedInfo');
+    const occupiedMessage = document.getElementById('occupiedMessage');
+    const occupiedList = document.getElementById('occupiedList');
+    const suggestionEl = document.getElementById('suggestion');
+    const form = document.getElementById('newBookingForm');
+
+    function parseTimeToMinutes(t) {
+      return toMinutes(t);
+    }
+
+    function overlaps(startA, endA, startB, endB) {
+      return startA < endB && endA > startB;
+    }
+
+    function formatHM(minutes) {
+      const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+      const m = (minutes % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
+    }
+
+    async function fetchAndShow() {
+      occupiedWrapper.classList.add('hidden');
+      occupiedList.innerHTML = '';
+      suggestionEl.textContent = '';
+
+      const roomId = roomSelect.value;
+      const date = (dateInput && dateInput.value) ? dateInput.value : document.querySelector('input[name="date"]').value;
+      if (!roomId || !date) return;
+
+      try {
+        const res = await fetch(`/agenda/api/reservas/${roomId}/${date}`);
+        if (!res.ok) return;
+        const bookings = await res.json();
+        if (!Array.isArray(bookings)) return;
+
+        occupiedWrapper.classList.remove('hidden');
+        if (bookings.length === 0) {
+          occupiedMessage.textContent = 'Nenhuma reserva para esta sala nesta data.';
+        } else {
+          occupiedMessage.textContent = 'Horários ocupados:';
+          bookings.sort((a,b) => (a.start_time > b.start_time) ? 1 : -1);
+          bookings.forEach((b) => {
+            const line = document.createElement('div');
+            line.textContent = `${String(b.client_name)} — ${String(b.start_time).slice(0,5)} - ${String(b.end_time).slice(0,5)}`;
+            occupiedList.appendChild(line);
+          });
+        }
+
+        // Validate selected times against bookings and suggest next
+        const s = parseTimeToMinutes(startInput.value);
+        const e = parseTimeToMinutes(endInput.value);
+        if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return;
+
+        const duration = e - s;
+        const dayStart = 8 * 60; // 08:00
+        const dayEnd = 22 * 60; // 22:00
+
+        const parsed = bookings.map((b) => ({
+          start: parseTimeToMinutes(String(b.start_time).slice(0,5)),
+          end: parseTimeToMinutes(String(b.end_time).slice(0,5)),
+        })).sort((a,b) => a.start - b.start);
+
+        const hasConflict = parsed.some((b) => overlaps(s, e, b.start, b.end));
+        if (hasConflict) {
+          suggestionEl.textContent = 'Conflito detectado para o horário selecionado.';
+          // find next available start >= s
+          let prevEnd = dayStart;
+          let candidate = Math.max(s, dayStart);
+          let found = null;
+          for (let i = 0; i <= parsed.length; i++) {
+            const nextBooking = parsed[i];
+            const gapEnd = nextBooking ? nextBooking.start : dayEnd;
+            const gapStart = prevEnd;
+            candidate = Math.max(candidate, gapStart);
+            if (candidate + duration <= gapEnd) {
+              found = candidate;
+              break;
+            }
+            prevEnd = nextBooking ? Math.max(prevEnd, nextBooking.end) : prevEnd;
+          }
+          if (found !== null) {
+            suggestionEl.textContent += ` Sugestão: iniciar às ${formatHM(found)}.`;
+          } else {
+            suggestionEl.textContent += ' Nenhum horário disponível hoje para a duração selecionada.';
+          }
+        } else {
+          suggestionEl.textContent = 'Horário disponível.';
+        }
+      } catch (err) {
+        // ignore fetch errors silently
+      }
+    }
+
+    // Trigger fetch when date or room or times change
+    if (dateInput) dateInput.addEventListener('change', fetchAndShow);
+    roomSelect.addEventListener('change', fetchAndShow);
+    startInput.addEventListener('change', fetchAndShow);
+
+    // Prevent submit when conflict exists (client-side assistance only)
+    form.addEventListener('submit', function (ev) {
+      const txt = suggestionEl.textContent || '';
+      if (txt.indexOf('Conflito detectado') !== -1) {
+        ev.preventDefault();
+        alert('Conflito detectado: ajuste horário ou veja sugestão na tela.');
+      }
+    });
 
     updateStatusHighlight();
   })();

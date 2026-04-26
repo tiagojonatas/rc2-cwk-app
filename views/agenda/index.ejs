@@ -79,6 +79,34 @@
 
 <section class="mb-6 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-100">
   <h3 class="app-section-title mb-3">Semana atual</h3>
+  <form method="GET" action="/agenda" class="mb-3 flex flex-wrap items-center gap-2">
+    <label class="text-sm text-gray-600">
+      Sala
+      <select name="room" class="ml-2 rounded-lg border border-gray-300 px-2 py-1 text-sm">
+        <option value="">Todas</option>
+        <% (rooms || []).forEach((r) => { %>
+          <option value="<%= r.id %>" <%= (selectedRoom && String(selectedRoom) === String(r.id)) ? 'selected' : '' %>><%= r.name %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label class="text-sm text-gray-600">
+      Status
+      <select name="status" class="ml-2 rounded-lg border border-gray-300 px-2 py-1 text-sm">
+        <option value="">Todos</option>
+        <option value="confirmed" <%= (selectedStatus === 'confirmed') ? 'selected' : '' %>>Confirmada</option>
+        <option value="pending" <%= (selectedStatus === 'pending') ? 'selected' : '' %>>Pendente</option>
+      </select>
+    </label>
+
+    <label class="text-sm text-gray-600">
+      Data
+      <input type="date" name="date" value="<%= selectedDate || '' %>" class="ml-2 rounded-lg border border-gray-300 px-2 py-1 text-sm" />
+    </label>
+
+    <button type="submit" class="ml-2 rounded-lg bg-indigo-600 px-3 py-1 text-sm font-medium text-white">Aplicar</button>
+    <a href="/agenda" class="ml-2 text-sm text-gray-600 hover:underline">Limpar</a>
+  </form>
   <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
     <% weekDays.forEach((day) => { %>
       <a href="/agenda?date=<%= day.iso %>" 
@@ -111,6 +139,213 @@
 </section>
 
 <section class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+  <h3 class="app-section-title">Visão por salas — <%= listDateLabel %></h3>
+  <p class="text-sm text-gray-500 mb-4">Arraste um bloco para reagendar. Clique para ver detalhes.</p>
+
+  <div class="overflow-auto border rounded-md" style="padding:12px">
+    <div id="calendarContainer" style="position:relative; min-width:1000px;">
+      <div id="timeHeader" style="display:flex; position:sticky; top:0; background:#fff; z-index:10;">
+        <div style="width:180px; flex:0 0 180px;"></div>
+        <div id="timeSlots" style="flex:1 1 auto; display:flex; gap:0; align-items:stretch;"></div>
+      </div>
+
+      <div id="roomsGrid" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div id="bookingModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-lg p-4 w-96">
+      <div id="modalContent"></div>
+      <div class="mt-4 flex justify-end gap-2">
+        <form id="cancelForm" method="POST" action="" style="display:inline">
+          <button type="submit" class="rounded-md bg-red-100 px-3 py-1 text-sm text-red-700">Cancelar</button>
+        </form>
+        <button id="modalClose" class="rounded-md bg-gray-100 px-3 py-1 text-sm">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const rooms = <%- JSON.stringify(typeof rooms !== 'undefined' ? rooms : []) %>;
+      const bookings = <%- JSON.stringify(typeof listBookings !== 'undefined' ? listBookings : []) %>;
+      const roomsUsage = <%- JSON.stringify(typeof roomsUsage !== 'undefined' ? roomsUsage : []) %>;
+      const date = '<%= listDate %>';
+
+      const dayStart = 8 * 60; // minutes
+      const dayEnd = 22 * 60;
+      const totalMinutes = dayEnd - dayStart;
+      let pxPerMinute = 1.2;
+      let timelineWidth = Math.max(800, Math.round(totalMinutes * pxPerMinute));
+
+      const timeSlots = document.getElementById('timeSlots');
+      // allow the container to size the header, but ensure a sensible minimum
+      timeSlots.style.minWidth = timelineWidth + 'px';
+      // render hours labels every 60 minutes (do not include the final end tick)
+      for (let t = dayStart; t < dayEnd; t += 60) {
+        const label = document.createElement('div');
+        label.style.flex = '0 0 auto';
+        label.style.textAlign = 'center';
+        label.style.fontSize = '12px';
+        label.style.padding = '6px 2px';
+        label.style.borderLeft = '1px solid #eee';
+        const h = Math.floor(t/60).toString().padStart(2,'0');
+        label.textContent = h + ':00';
+        timeSlots.appendChild(label);
+      }
+
+      // compute hour column width from available header width to avoid misalignment
+      const hoursCount = (dayEnd - dayStart) / 60;
+      const availableWidth = Math.max(timeSlots.clientWidth || 0, Math.round(hoursCount * 60 * pxPerMinute));
+      const hourWidth = availableWidth / hoursCount;
+      pxPerMinute = hourWidth / 60;
+      timelineWidth = Math.round(availableWidth);
+      timeSlots.style.minWidth = timelineWidth + 'px';
+      // enforce exact width on each label
+      timeSlots.querySelectorAll('div').forEach((lbl) => { lbl.style.width = Math.round(hourWidth) + 'px'; });
+
+      const roomsGrid = document.getElementById('roomsGrid');
+      const roomColors = {};
+      // generate colors per room
+      const palette = ["#60A5FA","#34D399","#F59E0B","#F97316","#A78BFA","#FCA5A5","#7DD3FC","#86EFAC"];
+      rooms.forEach((r,i)=>{ roomColors[r.id]=palette[i % palette.length]; });
+
+      rooms.forEach((r)=>{
+        const row = document.createElement('div');
+        row.className = 'room-row';
+        row.style.display = 'flex';
+        row.style.alignItems = 'flex-start';
+        row.style.borderTop = '1px solid #f1f5f9';
+        row.style.padding = '8px 0';
+
+        const left = document.createElement('div');
+        left.style.width = '180px';
+        left.style.flex = '0 0 180px';
+        left.style.padding = '6px';
+        const usage = roomsUsage.find(u => String(u.room_id) === String(r.id)) || { percent: 0 };
+        left.innerHTML = `<div class="font-medium">${r.name}</div><div class="text-xs text-gray-500">${r.price_per_hour ? 'R$ ' + Number(r.price_per_hour).toFixed(2) + '/h' : ''}</div><div class="mt-1 text-xs text-gray-600">Ocupação (tempo): ${usage.percent}%</div>`;
+
+        const lane = document.createElement('div');
+        lane.style.position = 'relative';
+        lane.style.height = '64px';
+        lane.style.flex = '1 1 auto';
+        lane.style.minWidth = timelineWidth + 'px';
+        lane.style.background = '#fff';
+
+        // allow drop
+        lane.addEventListener('dragover', (ev)=>{ ev.preventDefault(); });
+        lane.addEventListener('drop', async (ev)=>{
+          ev.preventDefault();
+          const bookingId = ev.dataTransfer.getData('text/booking-id');
+          if (!bookingId) return;
+          const rect = lane.getBoundingClientRect();
+          const offsetX = ev.clientX - rect.left;
+          const newStart = Math.round(offsetX / pxPerMinute) + dayStart;
+          // find booking
+          const bk = bookings.find(b=>String(b.id)===String(bookingId));
+          if (!bk) return;
+          const duration = (parseTime(bk.end_time) - parseTime(bk.start_time));
+          const newEnd = newStart + duration;
+          // send reschedule
+          const params = new URLSearchParams();
+          params.append('date', date);
+          params.append('start_time', minutesToTime(newStart));
+          params.append('end_time', minutesToTime(newEnd));
+          try {
+            const res = await fetch('/agenda/' + bookingId + '/reschedule', { method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'}, body: params.toString() });
+            const j = await res.json();
+            if (res.ok && j.success) {
+              location.reload();
+            } else {
+              alert(j.message || 'Erro ao reagendar');
+            }
+          } catch (err) { alert('Erro ao comunicar com o servidor'); }
+        });
+
+        row.appendChild(left);
+        row.appendChild(lane);
+        roomsGrid.appendChild(row);
+
+        // render bookings for this room
+        const roomBookings = bookings.filter(b=>String(b.room_id) === String(r.id));
+        roomBookings.forEach((b)=>{
+          const start = parseTime(String(b.start_time).slice(0,5));
+          const end = parseTime(String(b.end_time).slice(0,5));
+          const leftPx = Math.round((start - dayStart) * pxPerMinute);
+          const widthPx = Math.max(36, Math.round((end - start) * pxPerMinute));
+          const block = document.createElement('div');
+          block.className = 'booking-block';
+          block.setAttribute('draggable','true');
+          block.dataset.bookingId = b.id;
+          block.style.position = 'absolute';
+          block.style.left = leftPx + 'px';
+          block.style.top = '8px';
+          block.style.height = '48px';
+          block.style.width = widthPx + 'px';
+          block.style.borderRadius = '6px';
+          block.style.padding = '6px';
+          block.style.boxSizing = 'border-box';
+          block.style.cursor = 'grab';
+          const color = roomColors[r.id] || '#60A5FA';
+          // status color modifiers
+          if (b.status && (b.status === 'cancelled_by_admin' || b.status === 'cancelled_by_client' || b.status === 'cancelado')) {
+            block.style.background = '#F8FAFC';
+            block.style.border = '1px solid #FCA5A5';
+            block.style.color = '#7F1D1D';
+          } else if (b.status && b.status !== 'confirmed') {
+            block.style.background = '#FEF3C7';
+            block.style.border = '1px solid #F59E0B';
+            block.style.color = '#92400E';
+          } else {
+            block.style.background = color;
+            block.style.color = '#041C32';
+          }
+          block.innerHTML = `<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(b.client_name || '')}</div><div style="font-size:11px;opacity:0.85">${String(b.start_time).slice(0,5)} - ${String(b.end_time).slice(0,5)}</div>`;
+
+          block.addEventListener('dragstart',(ev)=>{ ev.dataTransfer.setData('text/booking-id', b.id); ev.dataTransfer.effectAllowed = 'move'; });
+          block.addEventListener('dblclick', ()=>{ openModal(b); });
+          block.addEventListener('click', ()=>{ openModal(b); });
+
+          lane.appendChild(block);
+        });
+      });
+
+      function parseTime(t) { // 'HH:MM'
+        if (!t) return 0;
+        const parts = String(t).slice(0,5).split(':');
+        return Number(parts[0]) * 60 + Number(parts[1]);
+      }
+      function minutesToTime(m) {
+        const hh = String(Math.floor(m/60)).padStart(2,'0');
+        const mm = String(m % 60).padStart(2,'0');
+        return hh + ':' + mm + ':00';
+      }
+      function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+      // Modal
+      const bookingModal = document.getElementById('bookingModal');
+      const modalContent = document.getElementById('modalContent');
+      const modalClose = document.getElementById('modalClose');
+      const cancelForm = document.getElementById('cancelForm');
+      function openModal(b){
+        modalContent.innerHTML = `<p class="font-medium">${escapeHtml(b.client_name || '')}</p>
+          <p class="text-sm text-gray-600">Sala: ${escapeHtml(b.room_name || '')}</p>
+          <p class="text-sm text-gray-600">Duração: ${String(b.start_time).slice(0,5)} - ${String(b.end_time).slice(0,5)}</p>
+          <p class="text-sm text-gray-600">Valor: ${b.valor ? ('R$ ' + Number(b.valor).toFixed(2)) : (b.value ? ('R$ ' + Number(b.value).toFixed(2)) : '-')}</p>
+          <p class="mt-2 text-sm text-gray-700">${escapeHtml(b.observacoes || b.notes || '')}</p>
+          <div class="mt-3 flex gap-2">
+            <a class="rounded-md bg-indigo-100 px-3 py-1 text-sm" href="/agenda/nova?edit_id=${b.id}">Editar</a>
+            <form method="POST" action="/agenda/${b.id}/cancelar" style="display:inline"><button type="submit" class="rounded-md bg-red-100 px-3 py-1 text-sm text-red-700">Cancelar</button></form>
+          </div>`;
+        cancelForm.setAttribute('action', '/agenda/' + b.id + '/cancelar');
+        bookingModal.classList.remove('hidden');
+      }
+      modalClose.addEventListener('click', ()=> bookingModal.classList.add('hidden'));
+      bookingModal.addEventListener('click', (ev)=>{ if (ev.target === bookingModal) bookingModal.classList.add('hidden'); });
+
+    })();
+  </script>
+
   <h3 class="app-section-title">Reservas <%= listDateLabel %></h3>
 
   <% if (!listBookings || listBookings.length === 0) { %>

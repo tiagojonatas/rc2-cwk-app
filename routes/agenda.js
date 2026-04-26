@@ -17,5 +17,8 @@ router.get("/nova", agendaController.newForm);
 router.get("/api/reservas/:roomId/:date", agendaController.getReservasPorSalaData);
 router.post("/nova", agendaController.create);
 router.post("/:id/cancelar", agendaController.cancel);
+router.post("/:id/reschedule", agendaController.reschedule);
+router.get('/:id/editar', agendaController.editForm);
+router.post('/:id/editar', agendaController.update);
 
 module.exports = router;
