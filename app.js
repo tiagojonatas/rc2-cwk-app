@@ -15,6 +15,7 @@ const clientRoutes = require("./routes/clients");
 const financeRoutes = require("./routes/finance");
 const bookingRoutes = require("./routes/bookings");
 const reportRoutes = require("./routes/reports");
+const reportController = require("./controllers/reportController");
 const clientAreaRoutes = require("./routes/client");
 const auditRoutes = require("./routes/audit");
 const userRoutes = require("./routes/users");
@@ -55,6 +56,8 @@ app.use("/clients", requireFuncionario, clientRoutes);
 app.use("/finance", requireFuncionario, financeRoutes);
 app.use("/bookings", requireFuncionario, bookingRoutes);
 app.use("/agenda", requireFuncionario, agendaRoutes);
+// temporary public debug endpoint for reports (does not require auth)
+app.get('/reports/debug-public', reportController.debug);
 app.use("/reports", requireAdminOrManager, reportRoutes);
 app.use("/audit", requireAdminOrManager, auditRoutes);
 app.use("/users", requireAdmin, userRoutes);

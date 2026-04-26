@@ -1,6 +1,34 @@
 const { query } = require("../config/db");
 
-const FIXED_COMPANY_ID = 1;
+function getCompanyId(req) {
+  return Number((req.session && req.session.company_id) || 1);
+}
+
+async function getBookingValueColumn(companyId) {
+  const rows = await query(
+    `SELECT COLUMN_NAME
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'bookings'
+       AND COLUMN_NAME IN ('valor', 'value')
+     ORDER BY FIELD(COLUMN_NAME, 'valor', 'value')
+     LIMIT 1`
+  );
+  return rows[0] ? rows[0].COLUMN_NAME : null;
+}
+
+async function getNumPeopleColumn(companyId) {
+  const rows = await query(
+    `SELECT COLUMN_NAME
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'bookings'
+       AND COLUMN_NAME IN ('num_pessoas', 'num_people', 'people_count', 'pax')
+     ORDER BY FIELD(COLUMN_NAME, 'num_pessoas', 'num_people', 'people_count', 'pax')
+     LIMIT 1`
+  );
+  return rows[0] ? rows[0].COLUMN_NAME : null;
+}
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString("pt-BR", {
@@ -63,6 +91,7 @@ function buildMonthOptions() {
 
 exports.index = async (req, res) => {
   try {
+    const companyId = getCompanyId(req);
     const { year, month } = parseSelectedMonth(req.query.month);
     const selectedMonth = `${year}-${String(month).padStart(2, "0")}`;
     const selectedMonthStart = `${selectedMonth}-01`;
@@ -74,7 +103,7 @@ exports.index = async (req, res) => {
          AND status = 'paid'
          AND YEAR(created_at) = ?
          AND MONTH(created_at) = ?`,
-      [FIXED_COMPANY_ID, year, month]
+      [companyId, year, month]
     );
 
     const [pendingTotalRow] = await query(
@@ -84,7 +113,7 @@ exports.index = async (req, res) => {
          AND status = 'pending'
          AND YEAR(created_at) = ?
          AND MONTH(created_at) = ?`,
-      [FIXED_COMPANY_ID, year, month]
+      [companyId, year, month]
     );
 
     const revenueLast3Months = await query(
@@ -99,12 +128,12 @@ exports.index = async (req, res) => {
          AND created_at < DATE_ADD(?, INTERVAL 1 MONTH)
        GROUP BY YEAR(created_at), MONTH(created_at), DATE_FORMAT(created_at, '%m/%Y')
        ORDER BY YEAR(created_at) DESC, MONTH(created_at) DESC`,
-      [FIXED_COMPANY_ID, selectedMonthStart, selectedMonthStart]
+      [companyId, selectedMonthStart, selectedMonthStart]
     );
 
     const [activeClientsRow] = await query(
       "SELECT COUNT(*) AS total FROM clients WHERE company_id = ? AND status IN ('ativo', 'active')",
-      [FIXED_COMPANY_ID]
+      [companyId]
     );
 
     const [newClientsMonthRow] = await query(
@@ -113,12 +142,12 @@ exports.index = async (req, res) => {
        WHERE company_id = ?
          AND YEAR(created_at) = ?
          AND MONTH(created_at) = ?`,
-      [FIXED_COMPANY_ID, year, month]
+      [companyId, year, month]
     );
 
     const [inactiveClientsRow] = await query(
       "SELECT COUNT(*) AS total FROM clients WHERE company_id = ? AND status IN ('inativo', 'inactive')",
-      [FIXED_COMPANY_ID]
+      [companyId]
     );
 
     const roomsMonthUsage = await query(
@@ -133,8 +162,42 @@ exports.index = async (req, res) => {
        WHERE rooms.company_id = ?
        GROUP BY rooms.id, rooms.name
        ORDER BY bookings_count DESC, rooms.name ASC`,
-      [year, month, FIXED_COMPANY_ID]
+      [year, month, companyId]
     );
+
+    // additional aggregations: minutes booked per room, revenue from bookings (if column exists), people count
+    const bookingValueCol = await getBookingValueColumn(companyId);
+    const numPeopleCol = await getNumPeopleColumn(companyId);
+
+    const roomsMinutes = await query(
+      `SELECT room_id, COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/60), 0) AS minutes
+       FROM bookings
+       WHERE company_id = ? AND YEAR(date) = ? AND MONTH(date) = ? AND status = 'confirmed'
+       GROUP BY room_id`,
+      [companyId, year, month]
+    );
+
+    let bookingsRevenueRow = { total: 0 };
+    if (bookingValueCol) {
+      const rows = await query(
+        `SELECT COALESCE(SUM(${bookingValueCol}), 0) AS total
+         FROM bookings
+         WHERE company_id = ? AND YEAR(date) = ? AND MONTH(date) = ? AND status = 'confirmed'`,
+        [companyId, year, month]
+      );
+      bookingsRevenueRow = rows[0] || bookingsRevenueRow;
+    }
+
+    let bookingsPeopleRow = { total: 0 };
+    if (numPeopleCol) {
+      const rows = await query(
+        `SELECT COALESCE(SUM(${numPeopleCol}), 0) AS total
+         FROM bookings
+         WHERE company_id = ? AND YEAR(date) = ? AND MONTH(date) = ? AND status = 'confirmed'`,
+        [companyId, year, month]
+      );
+      bookingsPeopleRow = rows[0] || bookingsPeopleRow;
+    }
 
     const topRoomId = roomsMonthUsage.length > 0 ? roomsMonthUsage[0].id : null;
 
@@ -146,7 +209,7 @@ exports.index = async (req, res) => {
          AND due_date < CURDATE()
          AND YEAR(due_date) = ?
          AND MONTH(due_date) = ?`,
-      [FIXED_COMPANY_ID, year, month]
+      [companyId, year, month]
     );
 
     const [overdueClientsRow] = await query(
@@ -157,7 +220,7 @@ exports.index = async (req, res) => {
          AND due_date < CURDATE()
          AND YEAR(due_date) = ?
          AND MONTH(due_date) = ?`,
-      [FIXED_COMPANY_ID, year, month]
+      [companyId, year, month]
     );
 
     const overdueList = await query(
@@ -171,8 +234,19 @@ exports.index = async (req, res) => {
          AND MONTH(invoices.due_date) = ?
        GROUP BY invoices.client_id, clients.name
        ORDER BY total_due DESC`,
-      [FIXED_COMPANY_ID, year, month]
+      [companyId, year, month]
     );
+
+    // merge minutes into roomsMonthUsage and compute percent occupancy for the month (based on working hours 8-22)
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const minutesPerDay = (22 - 8) * 60;
+    const totalPossibleMinutes = minutesPerDay * daysInMonth;
+    const minutesMap = (roomsMinutes || []).reduce((acc, r) => { acc[String(r.room_id)] = Number(r.minutes || 0); return acc; }, {});
+    const enrichedRoomsMonthUsage = roomsMonthUsage.map((room) => {
+      const minutes = Number(minutesMap[String(room.id)] || 0);
+      const percent = totalPossibleMinutes > 0 ? Math.round((minutes / totalPossibleMinutes) * 100) : 0;
+      return { ...room, minutes, percent };
+    });
 
     res.render("reports/index", {
       pageTitle: "Relatorios",
@@ -198,10 +272,14 @@ exports.index = async (req, res) => {
       },
       selectedMonth,
       monthOptions: buildMonthOptions(),
-      roomsMonthUsage: roomsMonthUsage.map((room) => ({
+      roomsMonthUsage: enrichedRoomsMonthUsage.map((room) => ({
         ...room,
         isTopRoom: topRoomId !== null && room.id === topRoomId,
       })),
+      bookings: {
+        revenueFromBookings: bookingValueCol ? formatCurrency(bookingsRevenueRow.total) : null,
+        peopleServed: numPeopleCol ? Number(bookingsPeopleRow.total || 0) : null,
+      },
       delinquency: {
         totalOverdue: formatCurrency(overdueTotalRow.total),
         overdueClients: Number(overdueClientsRow.total || 0),
@@ -213,5 +291,65 @@ exports.index = async (req, res) => {
     });
   } catch (error) {
     res.status(500).send("Erro ao carregar relatorios.");
+  }
+};
+
+exports.debug = async (req, res) => {
+  try {
+    const companyId = getCompanyId(req);
+    const { year, month } = parseSelectedMonth(req.query.month);
+
+    const roomsMonthUsage = await query(
+      `SELECT rooms.id, rooms.name, COUNT(bookings.id) AS bookings_count
+       FROM rooms
+       LEFT JOIN bookings
+         ON bookings.room_id = rooms.id
+        AND bookings.company_id = rooms.company_id
+        AND YEAR(bookings.date) = ?
+        AND MONTH(bookings.date) = ?
+        AND bookings.status = 'confirmed'
+       WHERE rooms.company_id = ?
+       GROUP BY rooms.id, rooms.name
+       ORDER BY bookings_count DESC, rooms.name ASC`,
+      [year, month, companyId]
+    );
+
+    const roomsMinutes = await query(
+      `SELECT room_id, COALESCE(SUM(TIME_TO_SEC(TIMEDIFF(end_time, start_time))/60), 0) AS minutes
+       FROM bookings
+       WHERE company_id = ? AND YEAR(date) = ? AND MONTH(date) = ? AND status = 'confirmed'
+       GROUP BY room_id`,
+      [companyId, year, month]
+    );
+
+    const bookingValueCol = await getBookingValueColumn(companyId);
+    const numPeopleCol = await getNumPeopleColumn(companyId);
+
+    let bookingsRevenueRow = { total: 0 };
+    if (bookingValueCol) {
+      const rows = await query(
+        `SELECT COALESCE(SUM(${bookingValueCol}), 0) AS total
+         FROM bookings
+         WHERE company_id = ? AND YEAR(date) = ? AND MONTH(date) = ? AND status = 'confirmed'`,
+        [companyId, year, month]
+      );
+      bookingsRevenueRow = rows[0] || bookingsRevenueRow;
+    }
+
+    let bookingsPeopleRow = { total: 0 };
+    if (numPeopleCol) {
+      const rows = await query(
+        `SELECT COALESCE(SUM(${numPeopleCol}), 0) AS total
+         FROM bookings
+         WHERE company_id = ? AND YEAR(date) = ? AND MONTH(date) = ? AND status = 'confirmed'`,
+        [companyId, year, month]
+      );
+      bookingsPeopleRow = rows[0] || bookingsPeopleRow;
+    }
+
+    res.json({ roomsMonthUsage, roomsMinutes, bookingsRevenue: bookingsRevenueRow, bookingsPeople: bookingsPeopleRow });
+  } catch (err) {
+    console.error('Debug reports error:', err);
+    res.status(500).json({ error: 'Erro no debug dos relatórios' });
   }
 };

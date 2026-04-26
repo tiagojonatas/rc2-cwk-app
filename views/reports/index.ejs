@@ -21,6 +21,9 @@
   <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
     <p class="app-label">Receita do m&ecirc;s</p>
     <h3 class="mt-2 text-3xl font-semibold text-emerald-600"><%= revenue.paidMonth %></h3>
+    <% if (bookings && bookings.revenueFromBookings) { %>
+      <p class="mt-2 text-sm text-gray-500">Receita (reservas): <span class="font-semibold text-slate-800"><%= bookings.revenueFromBookings %></span></p>
+    <% } %>
   </article>
   <article class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
     <p class="app-label">Pendente total</p>
@@ -93,13 +96,18 @@
       <% roomsMonthUsage.forEach((room) => { %>
         <li class="rounded-lg px-3 py-2 <%= room.isTopRoom ? 'border border-emerald-200 bg-emerald-50' : 'bg-gray-50' %>">
           <div class="flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-900"><%= room.name %></span>
-              <% if (room.isTopRoom) { %>
-                <span class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-medium tracking-wide text-emerald-700">Mais utilizada</span>
-              <% } %>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-900"><%= room.name %></span>
+                <% if (room.isTopRoom) { %>
+                  <span class="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-medium tracking-wide text-emerald-700">Mais utilizada</span>
+                <% } %>
+              </div>
+              <div class="text-xs text-gray-500 mt-1">Ocupação (tempo): <%= room.percent %>% — <%= Math.floor(room.minutes/60) %>h <%= room.minutes % 60 %>m</div>
             </div>
-            <span class="font-semibold text-slate-800"><%= room.bookings_count %> reservas</span>
+            <div class="text-right">
+              <div class="font-semibold text-slate-800"><%= room.bookings_count %> reservas</div>
+            </div>
           </div>
         </li>
       <% }) %>
